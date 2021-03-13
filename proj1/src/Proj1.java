@@ -22,20 +22,22 @@ is more sophisticated but also more difficult to implement and use.
 */
 
 public class Proj1 {
+    // cmd line arguments
     private final String protocolVersion;
     private final String id;
     private final String accessPoint;
-    private final String MC;
-    private final String MDB;
-    private final String MDR;
+    private final InetAddress MC;
+    private final InetAddress MDB;
+    private final InetAddress MDR;
     private final int MCPort;
     private final int MDBPort;
     private final int MDRPort;
-    // comment
+    // multicast sockets
+    private MulticastSocket MCSock, MDBSock, MDRSock;
 
     private DatagramSocket uniSocket = null;
 
-    public Proj1(String[] args) {
+    public Proj1(String[] args) throws IOException {
         // parse args
         if (args.length != 9) usage();
 
@@ -43,120 +45,66 @@ public class Proj1 {
         this.id = args[1];
         this.accessPoint = args[2];
         // MC
-        this.MC = args[3];
+        this.MC = InetAddress.getByName(args[3]);
         this.MCPort = Integer.parseInt(args[4]);
         // MDB
-        this.MDB = args[5];
+        this.MDB = InetAddress.getByName(args[5]);
         this.MDBPort = Integer.parseInt(args[6]);
         // MDR
-        this.MDR = args[7];
+        this.MDR = InetAddress.getByName(args[7]);
         this.MDRPort = Integer.parseInt(args[8]);
 
-        System.err.println(this);
+        System.out.println(this);
+
+        this.joinMulticasts();
+        System.out.println("Initialized program.");
     }
 
-    private void server() throws IOException {
-        // create unicast socket
-        int srvc_port = 0, mcast_port = 0;
-        String mcast_addr = "";
+    private void joinMulticasts() throws IOException {
+        this.MCSock = new MulticastSocket(this.MCPort);
+        this.MCSock.joinGroup(this.MC);
+
+        this.MDBSock = new MulticastSocket(this.MDBPort);
+        this.MDBSock.joinGroup(this.MDB);
+
+        this.MDRSock = new MulticastSocket(this.MDRPort);
+        this.MDRSock.joinGroup(this.MDR);
+    }
+
+    public void closeSockets() {
+        this.MCSock.close();
+        this.MDBSock.close();
+        this.MDRSock.close();
+    }
+
+    private void mainLoop() {
         try {
-            uniSocket = new DatagramSocket(srvc_port);
-        } catch (SocketException e) {
-            System.err.println("Couldn't bind server to specified port, " + srvc_port);
-            System.exit(1);
+            new ChunkBackupMsg("1.0", this.id,
+                    "filete", 78, 9)
+                    .send(this.MCSock, this.MC, this.MCPort);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-        System.out.println("Bound server to port: " + srvc_port);
 
-        // create multicast socket and bind to given port number
-        // thread sending ip + port every sec
-        ServerAnnouncer sa = new ServerAnnouncer(mcast_addr, mcast_port, srvc_port);
-        Timer timer = new Timer(true);
-        timer.scheduleAtFixedRate(sa, 0, 1000); // run every sec
-
-        // main loop
-        int num_entries = 0;
-        Map<String, String> dns_table = new HashMap<>();
-        byte[] inbuf = new byte[256];
-        DatagramPacket request = new DatagramPacket(inbuf, inbuf.length);
-        label:
+        byte[] packetData = new byte[64000 + 1000];
+        DatagramPacket packet = new DatagramPacket(packetData, packetData.length);
         while (true) {
-            // receive request packet
             try {
-                Arrays.fill(inbuf, (byte) 0);
-                uniSocket.receive(request);
+                this.MCSock.receive(packet);
             } catch (IOException e) {
-                System.err.println("Failed receiving packet. Skipping...");
+                e.printStackTrace();
                 continue;
             }
 
-            // parse packet
-            String in = new String(request.getData());
-            String[] req_args = in.split("[\u0000| ]");
+            String received = new String(packet.getData(), 0, packet.getLength());
+            System.out.println("Received: " + received);
 
-            System.out.println("Server: " + Arrays.toString(req_args));
-            if (req_args.length == 0) {
-                System.err.println("Empty request. Skipping...");
-                continue;
-            }
-
-            byte[] reply_bytes;
-            switch (req_args[0]) {
-                case "REGISTER":
-                    if (req_args.length != 3) {
-                        System.err.println("Register is missing arguments. Skipping...");
-                        reply_bytes = "-1".getBytes();
-                    } else {
-                        final String dns_name = req_args[1];
-                        final String ip_addr = req_args[2];
-
-                        if (dns_table.containsKey(dns_name)) { // dns name already registered
-                            System.err.println("dns name already registered");
-                            reply_bytes = "-1".getBytes();
-                        } else { // register new dns name
-                            dns_table.put(dns_name, ip_addr);
-                            System.out.println("Registered: " + dns_table.get(dns_name));
-
-                            reply_bytes = String.valueOf(num_entries).getBytes();
-                            ++num_entries;
-                        }
-                    }
-                    break;
-                case "LOOKUP":
-                    if (req_args.length != 2) {
-                        System.err.println("Lookup is missing arguments. Skipping...");
-                        reply_bytes = "-1".getBytes();
-                    } else {
-                        final String dns_name = req_args[1];
-
-                        if (dns_table.containsKey(dns_name)) { // dns name found
-                            reply_bytes = (dns_name + " " + dns_table.get(dns_name)).getBytes();
-                        } else { // dns name not found
-                            reply_bytes = "-1".getBytes();
-                        }
-                    }
-                    break;
-                case "CLOSE":
-                    System.out.println("Got close, closing...");
-                    break label;
-                default:
-                    System.err.println("Unkown request. Skipping...");
-                    continue;
-            }
-
-            // send reply packet
-            DatagramPacket reply = new DatagramPacket(reply_bytes, reply_bytes.length,
-                    request.getAddress(), request.getPort());
-            try {
-                uniSocket.send(reply);
-            } catch (IOException e) {
-                System.err.println("Couldn't send reply. Skipping...");
+            String[] receivedFields = received.split(" ");
+            if (receivedFields[Message.idField].equals(this.id)) {
+                System.out.println("We sent this message. Skipping..");
             }
         }
 
-        System.out.println("Quitting...");
-        timer.cancel();
-        sa.close();
-        uniSocket.close();
     }
 
     @Override
@@ -170,11 +118,24 @@ public class Proj1 {
     }
 
     private static void usage() {
-        System.err.println("Usage: java -jar\n\tProj1 <protocol version> <peer id> <service access point>\n\t<MC> <MDB> <MDR>");
+        System.err.println("Usage: java -jar\n\t" +
+                "Proj1 <protocol version> <peer id> <service access point>\n\t" +
+                "<MC> <MDB> <MDR>");
         System.exit(1);
     }
 
     public static void main(String[] args) {
-        new Proj1(args);
+        Proj1 prog = null;
+        try {
+            prog = new Proj1(args);
+        } catch (IOException e) {
+            System.err.println("Couldn't initialize the program.");
+            e.printStackTrace();
+            usage();
+        }
+        assert prog != null;
+
+        prog.mainLoop();
+        prog.closeSockets();
     }
 }
