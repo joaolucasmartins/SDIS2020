@@ -20,7 +20,11 @@ public class DigestFile {
         int len = inputStream.read(b, 0, CHUNK_LEN); // Read first 256 bytes
 
         // Hash with absolute path, owner, last modified time and first 256 bytes
-        StringBuilder bitString = new StringBuilder(file.toAbsolutePath().toString() + Files.getOwner(file) + Files.getLastModifiedTime(file));
+        StringBuilder bitString = new StringBuilder(
+                        file.toAbsolutePath().toString() +
+                        Files.getOwner(file) +
+                        Files.getLastModifiedTime(file)
+                    );
         for (int i = 0; i < len; ++i) // Add 256 bytes
             bitString.append((char) b[i]);
 
@@ -51,7 +55,7 @@ public class DigestFile {
     private void writeChunk(String chunkpath, byte[] b, int n) throws IOException {
         File f = new File(chunkpath);
         f.getParentFile().mkdirs();
-        f.createNewFile();
+        if (!f.createNewFile()) return;
         if (n >= 0) {
             try (FileOutputStream chunk = new FileOutputStream(chunkpath)) {
                 chunk.write(b, 0, n);
@@ -86,8 +90,8 @@ public class DigestFile {
 
         File f = new File(FILE_DIR + filename);
         f.getParentFile().mkdirs();
-        f.createNewFile();
-        FileOutputStream file = new FileOutputStream(f);
+        if (!f.createNewFile()) return;
+        FileOutputStream file = new FileOutputStream(f);;
 
         while (!done) {
             String chunkpath = FILE_DIR + file_id + File.separator + i;
