@@ -5,7 +5,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
 
 public class DigestFile {
     final static Integer CHUNK_LEN = 256;
@@ -22,7 +21,7 @@ public class DigestFile {
 
         // Hash with absolute path, owner, last modified time and first 256 bytes
         StringBuilder bitString = new StringBuilder(file.toAbsolutePath().toString() + Files.getOwner(file) + Files.getLastModifiedTime(file));
-        for (int i=0; i<len; ++i) // Add 256 bytes
+        for (int i = 0; i < len; ++i) // Add 256 bytes
             bitString.append((char) b[i]);
 
         return bitString.toString();
@@ -34,7 +33,7 @@ public class DigestFile {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             final byte[] bytes = digest.digest(bitString.getBytes(StandardCharsets.US_ASCII));
             StringBuilder r = new StringBuilder();
-            for (byte b: bytes)
+            for (byte b : bytes)
                 r.append(String.format("%02x", b));
             return r.toString();
         } catch (NoSuchAlgorithmException e) {
@@ -47,6 +46,7 @@ public class DigestFile {
         Path file = Paths.get(FILE_DIR + filename);
         return ((Files.size(file) / MAX_CHUNK_SIZE) > MAX_CHUNK_NUM);
     }
+
 
     private void writeChunk(String chunkpath, byte[] b, int n) throws IOException {
         File f = new File(chunkpath);
