@@ -65,7 +65,8 @@ public class DigestFile {
         }
     }
 
-    public void divideFile(String filename, String fileId) throws IOException {
+    public void divideFile(String filename) throws IOException {
+        String fileId = this.getHash(filename);
         FileInputStream inputFile = new FileInputStream(FILE_DIR + filename);
         byte[] b = new byte[MAX_CHUNK_SIZE];
         int n, i=0;
@@ -111,7 +112,7 @@ public class DigestFile {
         try {
             String filename = "filename.rar";
             //String h = d.getHash(filename);
-            //d.divideFile(filename, h);
+            //d.divideFile(filename);
 
             String id = "416ebf6f9e407ba10294e58cbcdc1ef55b0920cd6fd6255fe6767528ddf50aba";
             d.assembleFile(filename, id);
