@@ -21,8 +21,9 @@ public class DigestFile {
         byte[] b = new byte[256];
         int len = inputStream.read(b, 0, CHUNK_LEN); // Read first 256 bytes
 
-        StringBuilder bitString = new StringBuilder(filename + Files.getOwner(file) + Files.getLastModifiedTime(file));
-        for (int i=0; i<len; ++i)
+        // Hash with absolute path, owner, last modified time and first 256 bytes
+        StringBuilder bitString = new StringBuilder(file.toAbsolutePath().toString() + Files.getOwner(file) + Files.getLastModifiedTime(file));
+        for (int i=0; i<len; ++i) // Add 256 bytes
             bitString.append((char) b[i]);
 
         return bitString.toString();
@@ -30,7 +31,6 @@ public class DigestFile {
 
     public String getHash(String filename, FileInputStream inputStream) throws IOException {
         String bitString = this.getBitString(filename, inputStream);
-        System.out.println(bitString + "Here is bit string");
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             final byte[] bytes = digest.digest(bitString.getBytes(StandardCharsets.US_ASCII));
@@ -69,7 +69,7 @@ public class DigestFile {
         }
     }
 
-    public void assembleFile() {
+    public void assembleFile(String filename) {
 
     }
 
