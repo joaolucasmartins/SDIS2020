@@ -4,11 +4,12 @@ import java.net.InetAddress;
 import java.net.MulticastSocket;
 
 public class ChunkBackupMsg implements Message {
+    private final String type = "PUTCHUNK";
     private final String header;
 
     public ChunkBackupMsg(String version, String id, String fileId, int chunkNo, int replication) {
         this.header = version + " " +
-                "PUTCHUNK" + " " +
+                type + " " +
                 id + " " +
                 fileId + " " +
                 chunkNo + " " +

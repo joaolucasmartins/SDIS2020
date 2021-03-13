@@ -22,7 +22,7 @@ public class DigestFile {
         int len = inputStream.read(b, 0, CHUNK_LEN); // Read first 256 bytes
 
         StringBuilder bitString = new StringBuilder(filename + Files.getOwner(file) + Files.getLastModifiedTime(file));
-        for (int i=0; i<len; ++i)
+        for (int i = 0; i < len; ++i)
             bitString.append((char) b[i]);
 
         return bitString.toString();
@@ -35,7 +35,7 @@ public class DigestFile {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             final byte[] bytes = digest.digest(bitString.getBytes(StandardCharsets.US_ASCII));
             StringBuilder r = new StringBuilder();
-            for (byte b: bytes)
+            for (byte b : bytes)
                 r.append(String.format("%02x", b));
             return r.toString();
         } catch (NoSuchAlgorithmException e) {
@@ -46,7 +46,7 @@ public class DigestFile {
 
     public void divideFile(FileInputStream inputFile, String fileId) throws IOException {
         byte[] b = new byte[MAX_CHUNK_SIZE];
-        int n, i=0;
+        int n, i = 0;
 
         while ((n = inputFile.read(b, 0, MAX_CHUNK_SIZE)) == MAX_CHUNK_SIZE) {
             final String chunkpath = FILE_DIR + fileId + File.separator + i;
