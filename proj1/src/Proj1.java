@@ -35,8 +35,6 @@ public class Proj1 {
     // multicast sockets
     private MulticastSocket MCSock, MDBSock, MDRSock;
 
-    private DatagramSocket uniSocket = null;
-
     public Proj1(String[] args) throws IOException {
         // parse args
         if (args.length != 9) usage();
@@ -54,9 +52,9 @@ public class Proj1 {
         this.MDR = InetAddress.getByName(args[7]);
         this.MDRPort = Integer.parseInt(args[8]);
 
-        System.out.println(this);
-
         this.joinMulticasts();
+
+        System.out.println(this);
         System.out.println("Initialized program.");
     }
 
@@ -86,25 +84,25 @@ public class Proj1 {
             e.printStackTrace();
         }
 
-        byte[] packetData = new byte[64000 + 1000];
-        DatagramPacket packet = new DatagramPacket(packetData, packetData.length);
-        while (true) {
-            try {
-                this.MCSock.receive(packet);
-            } catch (IOException e) {
-                e.printStackTrace();
-                continue;
-            }
+        SockThread mcThread = new SockThread(this.MCSock, this.id);
+        SockThread mdbThread = new SockThread(this.MDBSock, this.id);
+        SockThread mdrThread = new SockThread(this.MDRSock, this.id);
 
-            String received = new String(packet.getData(), 0, packet.getLength());
-            System.out.println("Received: " + received);
+        mcThread.start();
+        mdbThread.start();
+        mdrThread.start();
 
-            String[] receivedFields = received.split(" ");
-            if (receivedFields[Message.idField].equals(this.id)) {
-                System.out.println("We sent this message. Skipping..");
-            }
-        }
+        Scanner scanner = new Scanner(System.in);
+        String cmd;
+        do {
+            cmd = scanner.nextLine();
+            System.out.println("CMD: " + cmd);
+        } while (!cmd.equalsIgnoreCase("EXIT"));
 
+        // shush threads
+        mcThread.interrupt();
+        mdbThread.interrupt();
+        mdrThread.interrupt();
     }
 
     @Override
