@@ -1,11 +1,10 @@
-import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.InetAddress;
-import java.net.MulticastSocket;
+package Message;
 
 public class ChunkBackupMsg implements Message {
-    private final String type = "PUTCHUNK";
+    static final String type = "PUTCHUNK";
     private final String header;
+    private final String fileId;
+    private final Integer chunkNo;
 
     public ChunkBackupMsg(String version, String id, String fileId, int chunkNo, int replication) {
         this.header = version + " " +
@@ -14,16 +13,24 @@ public class ChunkBackupMsg implements Message {
                 fileId + " " +
                 chunkNo + " " +
                 replication + " " +
-                CRLF + CRLF;
+                Message.CRLF + Message.CRLF;
+        this.fileId = fileId;
+        this.chunkNo = chunkNo;
+        // TODO add missing chunk here
+    }
+
+    public String getFileId() {
+        return fileId;
+    }
+
+    public Integer getChunkNo() {
+        return chunkNo;
     }
 
     @Override
-    public void send(MulticastSocket sock, InetAddress group, int port) throws IOException {
+    public byte[] getContent() {
         byte[] packetContent = header.getBytes();
-        DatagramPacket packet = new DatagramPacket(packetContent, packetContent.length, group, port);
-        sock.send(packet);
-
-        this.log();
+        return packetContent;
     }
 
     @Override

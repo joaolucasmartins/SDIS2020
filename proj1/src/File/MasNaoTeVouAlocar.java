@@ -1,3 +1,5 @@
+package File;
+
 import java.io.IOException;
 
 public class MasNaoTeVouAlocar extends IOException {

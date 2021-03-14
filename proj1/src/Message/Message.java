@@ -1,3 +1,5 @@
+package Message;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
@@ -12,7 +14,7 @@ public interface Message {
     int replicationField = 5;
     int CRLFField = 6;
 
-    void send(MulticastSocket sock, InetAddress addr, int port) throws IOException;
+    byte[] getContent();
 
     void log();
 }
