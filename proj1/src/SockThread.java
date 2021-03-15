@@ -1,10 +1,8 @@
 import Message.Message;
 
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.InetAddress;
-import java.net.MulticastSocket;
-import java.net.SocketException;
+import java.net.*;
+import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class SockThread implements Runnable {
@@ -61,12 +59,30 @@ public class SockThread implements Runnable {
         }
     }
 
-    public void send(Message message) throws IOException {
-        byte[] packetContent = message.getContent();
-        message.log();
-        DatagramPacket packet = new DatagramPacket(packetContent, packetContent.length, group, port);
-        System.out.println(this.sock);
-        sock.send(packet);
+    public void send(Message message) {
+        this.send(message, 0);
+    }
+
+    public void send(Message message, int timeout) {
+        DatagramSocket sock = this.sock;
+
+        new java.util.Timer().schedule(
+                new java.util.TimerTask() {
+                    @Override
+                    public void run() {
+                        byte[] packetContent = message.getContent();
+                        message.log();
+                        DatagramPacket packet = new DatagramPacket(packetContent, packetContent.length, group, port);
+                        System.out.println(sock);
+                        try {
+                            sock.send(packet);
+                        } catch (IOException e) {
+                            e.printStackTrace(); // TODO Move this maybe, do we need to throw it outside?
+                        }
+                    }
+                },
+                timeout
+        );
     }
 
     @Override

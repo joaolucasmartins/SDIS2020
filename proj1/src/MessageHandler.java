@@ -3,6 +3,7 @@ import Message.ChunkBackupMsg;
 import Message.ChunkStoredMsg;
 
 import java.util.Arrays;
+import java.util.Random;
 
 import static Message.MessageCreator.createMessage;
 
@@ -38,7 +39,8 @@ public class MessageHandler {
                     ChunkBackupMsg backupMsg = (ChunkBackupMsg) message;
                     Message response = new ChunkStoredMsg(this.protocolVersion, this.selfID,
                             backupMsg.getFileId(), backupMsg.getChunkNo());
-                    this.MDBSock.send(response);
+                    Random random = new Random();
+                    this.MDBSock.send(response, random.nextInt(401)); //TODO make 401 a static member?
                 }
             } catch (Exception e) {
                 e.printStackTrace();
