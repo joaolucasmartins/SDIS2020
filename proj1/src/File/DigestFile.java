@@ -53,7 +53,6 @@ public class DigestFile {
         return ((Files.size(file) / MAX_CHUNK_SIZE) > MAX_CHUNK_NUM);
     }
 
-
     private void writeChunk(String chunkpath, byte[] b, int n) throws IOException {
         File f = new File(chunkpath);
         f.getParentFile().mkdirs();
@@ -65,6 +64,14 @@ public class DigestFile {
                 System.out.println("no write :(" + chunkpath + " " + n);
             }
         }
+    }
+
+    public byte[] readChunk(String filename, int chunkNo) throws IOException {
+        FileInputStream inputFile = new FileInputStream(FILE_DIR + this.getHash(filename) +
+                File.separator + chunkNo);
+        byte[] b = new byte[MAX_CHUNK_SIZE];
+        inputFile.read(b, 0, MAX_CHUNK_SIZE);
+        return b;
     }
 
     public void divideFile(String filename) throws IOException {

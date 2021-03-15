@@ -1,3 +1,4 @@
+import File.DigestFile;
 import Message.ChunkBackupMsg;
 
 import java.io.IOException;
@@ -82,10 +83,13 @@ Periodically send its IP and port to the multicast group to know that it is
             cmd = scanner.nextLine();
             System.out.println("CMD: " + cmd);
             if (cmd.equals("putchunk")) {
+                DigestFile db = new DigestFile();
+
                 try {
+                    db.divideFile("filename.txt");
                     this.MDBSock.send(
                     new ChunkBackupMsg("1.0", this.id,
-                            "filete", 78, 9));
+                            "filete", 0, 9, "filename.txt"));
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

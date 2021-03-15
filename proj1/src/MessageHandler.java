@@ -2,6 +2,8 @@ import Message.Message;
 import Message.ChunkBackupMsg;
 import Message.ChunkStoredMsg;
 
+import java.util.Arrays;
+
 import static Message.MessageCreator.createMessage;
 
 public class MessageHandler {
@@ -23,9 +25,6 @@ public class MessageHandler {
     }
 
     public void handleMessage(SockThread sock, String received) {
-        System.out.println();
-        System.out.println("Received: " + received);
-
         String[] receivedFields = received.split(" ");
         if (receivedFields[Message.idField].equals(this.selfID)) {
             System.out.println("We were the ones that sent this message. Skipping..");
@@ -33,7 +32,7 @@ public class MessageHandler {
 
             try {
                 Message message = createMessage(receivedFields);
-                System.out.println("Received " + receivedFields[Message.typeField]);
+                System.out.println("Received " + Arrays.toString(receivedFields));
 
                 if (message.getClass() == ChunkBackupMsg.class) {
                     ChunkBackupMsg backupMsg = (ChunkBackupMsg) message;

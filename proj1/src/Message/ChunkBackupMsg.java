@@ -1,12 +1,20 @@
 package Message;
 
+import File.DigestFile;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.ByteBuffer;
+
 public class ChunkBackupMsg implements Message {
     static final String type = "PUTCHUNK";
+    static final int chunkIndex = 7;
     private final String header;
     private final String fileId;
     private final Integer chunkNo;
+    private byte[] chunk;
 
-    public ChunkBackupMsg(String version, String id, String fileId, int chunkNo, int replication) {
+    public ChunkBackupMsg(String version, String id, String fileId, int chunkNo, int replication, byte[] chunk) {
         this.header = version + " " +
                 type + " " +
                 id + " " +
@@ -16,7 +24,16 @@ public class ChunkBackupMsg implements Message {
                 Message.CRLF + Message.CRLF;
         this.fileId = fileId;
         this.chunkNo = chunkNo;
-        // TODO add missing chunk here
+        this.chunk = chunk;
+    }
+    public ChunkBackupMsg(String version, String id, String fileId, int chunkNo, int replication, String filename) {
+        this(version, id, fileId, chunkNo, replication, new byte[0]);
+        DigestFile dg = new DigestFile();
+        try {
+            this.chunk = dg.readChunk(filename, chunkNo);
+        } catch (IOException e) {
+            e.printStackTrace(); // TODO Fail if chunk isn't here
+        }
     }
 
     public String getFileId() {
@@ -30,7 +47,8 @@ public class ChunkBackupMsg implements Message {
     @Override
     public byte[] getContent() {
         byte[] packetContent = header.getBytes();
-        return packetContent;
+        return ByteBuffer.allocate(packetContent.length + this.chunk.length)
+                .put(packetContent).put(this.chunk).array();
     }
 
     @Override

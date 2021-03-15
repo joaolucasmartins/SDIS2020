@@ -1,5 +1,7 @@
 package Message;
 
+import java.nio.charset.StandardCharsets;
+
 import static java.lang.Integer.parseInt;
 
 public class MessageCreator {
@@ -10,7 +12,8 @@ public class MessageCreator {
                 res = new ChunkBackupMsg(message[Message.versionField], message[Message.idField],
                         message[Message.fileField],
                         parseInt(message[Message.chunkField]),
-                        parseInt(message[Message.replicationField]));
+                        parseInt(message[Message.replicationField]),
+                        message[ChunkBackupMsg.chunkIndex].getBytes(StandardCharsets.UTF_8));
                 break;
             case (ChunkStoredMsg.type):
                 res = new ChunkStoredMsg(message[Message.versionField], message[Message.idField],
