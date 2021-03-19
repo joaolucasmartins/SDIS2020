@@ -1,7 +1,9 @@
+import File.DigestFile;
 import Message.Message;
 import Message.ChunkBackupMsg;
 import Message.ChunkStoredMsg;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.Random;
 
@@ -32,11 +34,13 @@ public class MessageHandler {
         } else {
 
             try {
-                Message message = createMessage(receivedFields);
                 System.out.println("Received " + Arrays.toString(receivedFields));
+                Message message = createMessage(receivedFields);
 
                 if (message.getClass() == ChunkBackupMsg.class) {
                     ChunkBackupMsg backupMsg = (ChunkBackupMsg) message;
+                    DigestFile.writeChunk(backupMsg.getFileId() + File.separator + backupMsg.getChunkNo(),
+                            backupMsg.getContent(), backupMsg.getContent().length);
                     Message response = new ChunkStoredMsg(this.protocolVersion, this.selfID,
                             backupMsg.getFileId(), backupMsg.getChunkNo());
                     Random random = new Random();

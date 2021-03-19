@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 
 public class DigestFile {
     final static Integer CHUNK_LEN = 256;
@@ -14,7 +15,7 @@ public class DigestFile {
     private static final int MAX_CHUNK_NUM = 999999;
     final static String FILE_DIR = "." + File.separator + "files" + File.separator;
 
-    private String getBitString(String filename) throws IOException {
+    private static String getBitString(String filename) throws IOException {
         Path file = Paths.get(FILE_DIR + filename);
         FileInputStream inputStream = new FileInputStream(FILE_DIR + filename);
 
@@ -33,8 +34,8 @@ public class DigestFile {
         return bitString.toString();
     }
 
-    public String getHash(String filename) throws IOException {
-        String bitString = this.getBitString(filename);
+    public static String getHash(String filename) throws IOException {
+        String bitString = getBitString(filename);
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             final byte[] bytes = digest.digest(bitString.getBytes(StandardCharsets.US_ASCII));
@@ -48,17 +49,18 @@ public class DigestFile {
         return "";
     }
 
-    private boolean surpassesMaxChunks(String filename) throws IOException {
+    private static boolean surpassesMaxChunks(String filename) throws IOException {
         Path file = Paths.get(FILE_DIR + filename);
         return ((Files.size(file) / MAX_CHUNK_SIZE) > MAX_CHUNK_NUM);
     }
 
-    private void writeChunk(String chunkpath, byte[] b, int n) throws IOException {
-        File f = new File(chunkpath);
+    public static void writeChunk(String chunkpath, byte[] b, int n) throws IOException {
+        String path = FILE_DIR + File.separator + chunkpath;
+        File f = new File(path);
         f.getParentFile().mkdirs();
         if (!f.createNewFile()) return;
         if (n >= 0) {
-            try (FileOutputStream chunk = new FileOutputStream(chunkpath)) {
+            try (FileOutputStream chunk = new FileOutputStream(path)) {
                 chunk.write(b, 0, n);
             } catch (Exception e) {
                 System.out.println("no write :(" + chunkpath + " " + n);
@@ -66,34 +68,34 @@ public class DigestFile {
         }
     }
 
-    public byte[] readChunk(String filename, int chunkNo) throws IOException {
-        FileInputStream inputFile = new FileInputStream(FILE_DIR + this.getHash(filename) +
+    public static byte[] readChunk(String filename, int chunkNo) throws IOException {
+        FileInputStream inputFile = new FileInputStream(FILE_DIR + getHash(filename) +
                 File.separator + chunkNo);
         byte[] b = new byte[MAX_CHUNK_SIZE];
         inputFile.read(b, 0, MAX_CHUNK_SIZE);
         return b;
     }
 
-    public void divideFile(String filename) throws IOException {
-        String fileId = this.getHash(filename);
+    public static void divideFile(String filename) throws IOException {
+        String fileId = getHash(filename);
         FileInputStream inputFile = new FileInputStream(FILE_DIR + filename);
         byte[] b = new byte[MAX_CHUNK_SIZE];
         int n, i=0;
 
-        if (this.surpassesMaxChunks(filename))
+        if (surpassesMaxChunks(filename))
             throw new MasNaoTeVouAlocar();
 
-        while ((n = inputFile.read(b, 0, MAX_CHUNK_SIZE)) == MAX_CHUNK_SIZE) {
-            final String chunkpath = FILE_DIR + fileId + File.separator + i;
-            this.writeChunk(chunkpath, b, n);
+        while ((n = inputFile.read(b, 0, MAX_CHUNK_SIZE)) >= MAX_CHUNK_SIZE) {
+            final String chunkpath = fileId + File.separator + i;
+            writeChunk(chunkpath, b, n);
             ++i;
         }
 
-        final String chunkpath = FILE_DIR + fileId + File.separator + i;
-        this.writeChunk(chunkpath, b, n);
+        final String chunkpath = fileId + File.separator + i;
+        writeChunk(chunkpath, b, n);
     }
 
-    public void assembleFile(String filename, String file_id) throws IOException {
+    public static void assembleFile(String filename, String file_id) throws IOException {
         byte[] b = new byte[MAX_CHUNK_SIZE];
         int i = 0;
         boolean done = false;
@@ -117,14 +119,13 @@ public class DigestFile {
     }
 
     public static void main(String[] args) {
-        DigestFile d = new DigestFile();
         try {
             String filename = "filename.rar";
-            //String h = d.getHash(filename);
-            //d.divideFile(filename);
+            // String h = getHash(filename);
+            // divideFile(filename);
 
             String id = "416ebf6f9e407ba10294e58cbcdc1ef55b0920cd6fd6255fe6767528ddf50aba";
-            d.assembleFile(filename, id);
+            assembleFile(filename, id);
         } catch (IOException e) {
             e.printStackTrace();
         }

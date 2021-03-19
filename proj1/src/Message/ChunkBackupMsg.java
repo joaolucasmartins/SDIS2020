@@ -3,12 +3,12 @@ package Message;
 import File.DigestFile;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 public class ChunkBackupMsg implements Message {
     static final String type = "PUTCHUNK";
-    static final int chunkIndex = 7;
+    static final int chunkIndex = 6;
     private final String header;
     private final String fileId;
     private final Integer chunkNo;
@@ -28,9 +28,8 @@ public class ChunkBackupMsg implements Message {
     }
     public ChunkBackupMsg(String version, String id, String fileId, int chunkNo, int replication, String filename) {
         this(version, id, fileId, chunkNo, replication, new byte[0]);
-        DigestFile dg = new DigestFile();
         try {
-            this.chunk = dg.readChunk(filename, chunkNo);
+            this.chunk = DigestFile.readChunk(filename, chunkNo);
         } catch (IOException e) {
             e.printStackTrace(); // TODO Fail if chunk isn't here
         }
