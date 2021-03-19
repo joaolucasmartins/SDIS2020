@@ -3,6 +3,11 @@ import Message.ChunkBackupMsg;
 
 import java.io.IOException;
 import java.net.*;
+import java.rmi.AlreadyBoundException;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
 
 /*
@@ -24,18 +29,22 @@ Periodically send its IP and port to the multicast group to know that it is
     is more sophisticated but also more difficult to implement and use.
     */
 
-    public class Proj1 {
-        // cmd line arguments
-        private final String protocolVersion;
-        private final String id;
-        private final String accessPoint;
-        // multicast sockets
-        private final SockThread MCSock;
-        private final SockThread MDBSock;
-        private final SockThread MDRSock;
+public class Proj1 implements TestInterface {
+    // cmd line arguments
+    private final String protocolVersion;
+    private final String id;
+    private final String accessPoint;
+    // multicast sockets
+    private final SockThread MCSock;
+    private final SockThread MDBSock;
+    private final SockThread MDRSock;
 
-        public Proj1(String[] args) throws IOException {
-            // parse args
+    public String getAccessPointName() {
+        return this.accessPoint;
+    }
+
+    public Proj1(String[] args) throws IOException {
+        // parse args
         if (args.length != 9) usage();
 
         this.protocolVersion = args[0];
@@ -88,8 +97,8 @@ Periodically send its IP and port to the multicast group to know that it is
                 try {
                     db.divideFile("filename.txt");
                     this.MDBSock.send(
-                    new ChunkBackupMsg("1.0", this.id,
-                            "filete", 0, 9, "filename.txt"));
+                            new ChunkBackupMsg("1.0", this.id,
+                                    "filete", 0, 9, "filename.txt"));
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -121,6 +130,7 @@ Periodically send its IP and port to the multicast group to know that it is
     }
 
     public static void main(String[] args) {
+        // parse cmdline args
         Proj1 prog = null;
         try {
             prog = new Proj1(args);
@@ -131,7 +141,43 @@ Periodically send its IP and port to the multicast group to know that it is
         }
         assert prog != null;
 
+        // setup the access point
+        try {
+            TestInterface stub = (TestInterface) UnicastRemoteObject.exportObject(prog, 0);
+            Registry registry = LocateRegistry.getRegistry();
+            registry.bind(prog.getAccessPointName(), stub);
+        } catch (Exception e) {
+            System.err.println("Setting up the access point for testing failed.");
+            e.printStackTrace();
+        }
+
         prog.mainLoop();
         prog.closeSockets();
+    }
+
+    /* USED BY THE TestApp (RMI) */
+    @Override
+    public String backup(String filePath, int replicationDegree) throws RemoteException {
+        return "backup";
+    }
+
+    @Override
+    public String restore(String filePath) throws RemoteException {
+        return "restore";
+    }
+
+    @Override
+    public String delete(String filePath) throws RemoteException {
+        return "delete";
+    }
+
+    @Override
+    public String reclaim(int maxCapacity) throws RemoteException {
+        return "reclaim";
+    }
+
+    @Override
+    public String state() throws RemoteException {
+        return this.toString();
     }
 }
