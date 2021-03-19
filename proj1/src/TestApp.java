@@ -12,10 +12,17 @@ public class TestApp {
     public static void main(String[] args) {
         if (args.length < 2 || args.length > 4) usage();
 
-        String rminame = args[0];
+        String rmiinfo = args[0];
+        String[] rmiinfoSplit = rmiinfo.split(":");
+        String rminame = rmiinfoSplit[0];
+
         TestInterface stub = null;
         try {
-            Registry registry = LocateRegistry.getRegistry();
+            Registry registry;
+            if (rmiinfoSplit.length > 1)
+                registry = LocateRegistry.getRegistry("localhost", Integer.parseInt(rmiinfoSplit[1]));
+            else
+                registry = LocateRegistry.getRegistry();
             stub = (TestInterface) registry.lookup(rminame);
         } catch (RemoteException | NotBoundException e) {
             System.err.println("Couldn't find/get the desired remote object.");
