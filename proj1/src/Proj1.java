@@ -92,13 +92,11 @@ public class Proj1 implements TestInterface {
             cmd = scanner.nextLine();
             System.out.println("CMD: " + cmd);
             if (cmd.equals("putchunk")) {
-                DigestFile db = new DigestFile();
-
                 try {
-                    db.divideFile("filename.txt");
+                    DigestFile.divideFile("filename.txt");
                     this.MDBSock.send(
-                            new ChunkBackupMsg("1.0", this.id,
-                                    "filete", 0, 9, "filename.txt"));
+                    new ChunkBackupMsg("1.0", this.id,
+                            DigestFile.getHash("filename.txt"), 0, 9, "filename.txt"));
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
