@@ -9,11 +9,17 @@ public class MessageCreator {
         Message res;
         switch (message[Message.typeField]) {
             case (ChunkBackupMsg.type):
+                String body = message[ChunkBackupMsg.chunkIndex];
+                if (!body.substring(0, 4).equals(Message.CRLF + Message.CRLF)) {
+                    res = null;
+                    break; // TODO Throw new exception here?
+                }
                 res = new ChunkBackupMsg(message[Message.versionField], message[Message.idField],
                         message[Message.fileField],
                         parseInt(message[Message.chunkField]),
                         parseInt(message[Message.replicationField]),
-                        message[ChunkBackupMsg.chunkIndex].getBytes(StandardCharsets.UTF_8));
+                        body.substring(5).getBytes(StandardCharsets.UTF_8));
+
                 break;
             case (ChunkStoredMsg.type):
                 res = new ChunkStoredMsg(message[Message.versionField], message[Message.idField],
