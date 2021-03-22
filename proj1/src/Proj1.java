@@ -3,7 +3,6 @@ import Message.ChunkBackupMsg;
 
 import java.io.IOException;
 import java.net.*;
-import java.rmi.AlreadyBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -142,8 +141,13 @@ public class Proj1 implements TestInterface {
         // setup the access point
         try {
             TestInterface stub = (TestInterface) UnicastRemoteObject.exportObject(prog, 0);
-            Registry registry = LocateRegistry.getRegistry();
-            registry.bind(prog.getAccessPointName(), stub);
+            String[] rmiinfoSplit = prog.getAccessPointName().split(":");
+            Registry registry;
+            if (rmiinfoSplit.length > 1)
+                registry = LocateRegistry.getRegistry("localhost", Integer.parseInt(rmiinfoSplit[1]));
+            else
+                registry = LocateRegistry.getRegistry();
+            registry.bind(rmiinfoSplit[0], stub);
         } catch (Exception e) {
             System.err.println("Setting up the access point for testing failed.");
             e.printStackTrace();
