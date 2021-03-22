@@ -71,9 +71,8 @@ public class SockThread implements Runnable {
                     @Override
                     public void run() {
                         byte[] packetContent = message.getContent();
-                        message.log();
+                        System.out.println("Sent: " + message);
                         DatagramPacket packet = new DatagramPacket(packetContent, packetContent.length, group, port);
-                        System.out.println(sock);
                         try {
                             sock.send(packet);
                         } catch (IOException e) {

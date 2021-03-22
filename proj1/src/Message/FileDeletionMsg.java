@@ -1,7 +1,7 @@
 package Message;
 
-public class FileDeletionMsg implements Message{
-    static final String type = "DELETE";
+public class FileDeletionMsg implements Message {
+    static public final String type = "DELETE";
     private final String header;
     private final String fileId;
 
@@ -24,7 +24,12 @@ public class FileDeletionMsg implements Message{
     }
 
     @Override
-    public void log() {
-        System.out.println("Sent: " + this.header);
+    public String getType() {
+        return type;
+    }
+
+    @Override
+    public String toString() {
+        return type + " " + this.fileId;
     }
 }

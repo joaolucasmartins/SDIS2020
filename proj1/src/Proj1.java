@@ -1,5 +1,6 @@
 import File.DigestFile;
 import Message.ChunkBackupMsg;
+import Message.FileDeletionMsg;
 
 import java.io.IOException;
 import java.net.*;
@@ -95,8 +96,9 @@ public class Proj1 implements TestInterface {
                 try {
                     DigestFile.divideFile("filename.txt");
                     this.MDBSock.send(
-                    new ChunkBackupMsg("1.0", this.id,
-                            DigestFile.getHash("filename.txt"), 0, 9, "filename.txt"));
+                            new ChunkBackupMsg("1.0", this.id,
+                                    DigestFile.getHash("filename.txt"),
+                                    0, 9, "filename.txt"));
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -184,7 +186,15 @@ public class Proj1 implements TestInterface {
 
     @Override
     public String delete(String filePath) throws RemoteException {
-        return "delete";
+        try {
+            String fileHash = DigestFile.getHash(filePath);
+            FileDeletionMsg msg = new FileDeletionMsg(this.protocolVersion, this.id, fileHash);
+            this.MCSock.send(msg);
+            return "Deleted file " + filePath + " with hash " + fileHash + ".";
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return "Deletion of " + filePath + " failed.";
     }
 
     @Override

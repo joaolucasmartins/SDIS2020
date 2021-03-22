@@ -2,8 +2,11 @@ import File.DigestFile;
 import Message.Message;
 import Message.ChunkBackupMsg;
 import Message.ChunkStoredMsg;
+import Message.FileDeletionMsg;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.channels.SeekableByteChannel;
 import java.util.Arrays;
 import java.util.Random;
 
@@ -31,24 +34,46 @@ public class MessageHandler {
         String[] receivedFields = received.split(" ");
         if (receivedFields[Message.idField].equals(this.selfID)) {
             System.out.println("We were the ones that sent this message. Skipping..");
-        } else {
+            return;
+        }
 
-            try {
-                System.out.println("Received " + Arrays.toString(receivedFields));
-                Message message = createMessage(receivedFields);
+        // handle the request
+        final String msgType = receivedFields[Message.typeField];
+        switch (msgType) {
+            case FileDeletionMsg.type:
+                // TODO delete file here
+                return;  // file deletion doesn't send a reply
+            default:
+                break;
+        }
 
-                if (message.getClass() == ChunkBackupMsg.class) {
+        // construct the reply
+        try {
+            System.out.println("Received: " + Arrays.toString(receivedFields));
+            Message message = createMessage(receivedFields);
+            switch (message.getType()) {
+                case ChunkBackupMsg.type:
                     ChunkBackupMsg backupMsg = (ChunkBackupMsg) message;
-                    DigestFile.writeChunk(backupMsg.getFileId() + File.separator + backupMsg.getChunkNo(),
-                            backupMsg.getContent(), backupMsg.getContent().length);
+                    try {
+                        DigestFile.writeChunk(backupMsg.getFileId() + File.separator + backupMsg.getChunkNo(),
+                                backupMsg.getContent(), backupMsg.getContent().length);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        return;
+                    }
                     Message response = new ChunkStoredMsg(this.protocolVersion, this.selfID,
                             backupMsg.getFileId(), backupMsg.getChunkNo());
                     Random random = new Random();
                     this.MDBSock.send(response, random.nextInt(401)); //TODO make 401 a static member?
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
+                    break;
+                case ChunkStoredMsg.type:
+                    break;
+                default:
+                    // unreachable
+                    break;
             }
+        } catch (Exception e) {
+            System.err.println("Failed constructing reply for " + msgType);
         }
     }
 }
