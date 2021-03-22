@@ -13,6 +13,7 @@ public interface Message {
     int chunkField = 4;
     int replicationField = 5;
     int CRLFField = 6;
+    int bodyField = 7;
 
     byte[] getContent();
 

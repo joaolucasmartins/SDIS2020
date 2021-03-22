@@ -28,14 +28,14 @@ public class MessageHandler {
     }
 
     public void handleMessage(SockThread sock, String received) {
-        String[] receivedFields = received.split(" ");
+        String[] receivedFields = received.split(" ", Message.idField);
         if (receivedFields[Message.idField].equals(this.selfID)) {
             System.out.println("We were the ones that sent this message. Skipping..");
         } else {
 
             try {
                 System.out.println("Received " + Arrays.toString(receivedFields));
-                Message message = createMessage(receivedFields);
+                Message message = createMessage(received);
 
                 if (message.getClass() == ChunkBackupMsg.class) {
                     ChunkBackupMsg backupMsg = (ChunkBackupMsg) message;
