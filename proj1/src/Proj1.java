@@ -1,12 +1,11 @@
 import File.DigestFile;
-import Message.ChunkBackupMsg;
+import Message.PutChunkMsg;
 import Message.GetChunkMsg;
-import Message.FileDeletionMsg;
 import Message.RemovedMsg;
+import Message.DeleteMsg;
 
 import java.io.IOException;
 import java.net.*;
-import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -98,7 +97,7 @@ public class Proj1 implements TestInterface {
                 try {
                     DigestFile.divideFile("filename.txt");
                     this.MDBSock.send(
-                            new ChunkBackupMsg("1.0", this.id,
+                            new PutChunkMsg("1.0", this.id,
                                     DigestFile.getHash("filename.txt"),
                                     0, 9, "filename.txt"));
                 } catch (IOException e) {
@@ -201,7 +200,7 @@ public class Proj1 implements TestInterface {
     public String delete(String filePath) throws RemoteException {
         try {
             String fileHash = DigestFile.getHash(filePath);
-            FileDeletionMsg msg = new FileDeletionMsg(this.protocolVersion, this.id, fileHash);
+            DeleteMsg msg = new DeleteMsg(this.protocolVersion, this.id, fileHash);
             this.MCSock.send(msg);
             return "Deleted file " + filePath + " with hash " + fileHash + ".";
         } catch (IOException e) {

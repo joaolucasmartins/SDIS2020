@@ -9,6 +9,7 @@ import java.util.Random;
 import static Message.MessageCreator.createMessage;
 
 public class MessageHandler {
+    public final int maxBackofMs = 401;
     private final String selfID;
     private final String protocolVersion;
     private final SockThread MCSock;
@@ -27,8 +28,11 @@ public class MessageHandler {
     }
 
     public void handleMessage(SockThread sock, String received) {
-        String[] receivedFields = received.split(" ", Message.idField + 1);
-        if (receivedFields[Message.idField].equals(this.selfID)) {
+        final String[] receivedFields = received.split(Message.CRLF, 3);
+        final String[] header = receivedFields[0].split(" ");
+        final String body = (receivedFields.length > 2) ? receivedFields[2] : null;
+
+        if (header[Message.idField].equals(this.selfID)) {
             System.out.println("We were the ones that sent this message. Skipping..");
             return;
         }
@@ -36,33 +40,38 @@ public class MessageHandler {
         // construct the reply
         Message message = null;
         try {
-            message = createMessage(received);
+            message = createMessage(header, body);
         } catch (NoSuchMessage noSuchMessage) {
-            System.err.println("No Such message " + message);
+            System.err.println("No Such message " + header[Message.typeField]);
             return;
         }
+        assert message != null;
+
         try {
-            System.out.println("Received: " + Arrays.toString(receivedFields));
+            System.out.println("Received: " + Arrays.toString(header));
             Message response;
             switch (message.getType()) {
-                case ChunkBackupMsg.type:
-                    ChunkBackupMsg backupMsg = (ChunkBackupMsg) message;
+                case PutChunkMsg.type:
+                    PutChunkMsg backupMsg = (PutChunkMsg) message;
                     try {
                         DigestFile.writeChunk(backupMsg.getFileId() + File.separator + backupMsg.getChunkNo(),
-                                backupMsg.getContent(), backupMsg.getContent().length);
+                                backupMsg.getChunk(), backupMsg.getChunk().length);
                     } catch (IOException e) {
                         e.printStackTrace();
                         return;
                     }
-                    response = new ChunkStoredMsg(this.protocolVersion, this.selfID,
+                    // send STORED reply message
+                    response = new StoredMsg(this.protocolVersion, this.selfID,
                             backupMsg.getFileId(), backupMsg.getChunkNo());
                     Random random = new Random();
-                    this.MDBSock.send(response, random.nextInt(401)); //TODO make 401 a static member?
+                    this.MDBSock.send(response, random.nextInt(maxBackofMs));
                     break;
-                case ChunkStoredMsg.type:
+                case StoredMsg.type:
                     break;
-                case FileDeletionMsg.type:
+                case DeleteMsg.type:
                     // TODO delete file here
+                    DeleteMsg delMsg = (DeleteMsg) message;
+                    DigestFile.deleteFile(delMsg.getFileId());
                     return;  // file deletion doesn't send a reply
                 case GetChunkMsg.type:
                     GetChunkMsg getChunkMsg = (GetChunkMsg) message;
@@ -84,8 +93,9 @@ public class MessageHandler {
                 default:
                     // unreachable
                     break;
-                }
+            }
         } catch (Exception e) {
+            e.printStackTrace();
             System.err.println("Failed constructing reply for " + message.getType());
         }
     }

@@ -2,6 +2,7 @@ package Message;
 
 public class RemovedMsg implements Message {
     public static final String type = "REMOVED";
+    public static final int CRLFField = 5;
     private final String header;
     private final String fileId;
     private final int chunkNo;
@@ -11,6 +12,7 @@ public class RemovedMsg implements Message {
                 type + " " +
                 id + " " +
                 fileId + " " +
+                chunkNo + " " +
                 Message.CRLF + Message.CRLF;
         this.fileId = fileId;
         this.chunkNo = chunkNo;
@@ -28,6 +30,11 @@ public class RemovedMsg implements Message {
     @Override
     public String getType() {
         return type;
+    }
+
+    @Override
+    public int getHeaderLen() {
+        return 5;
     }
 
     @Override

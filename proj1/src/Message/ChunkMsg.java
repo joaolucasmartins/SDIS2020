@@ -54,13 +54,20 @@ public class ChunkMsg implements Message {
 
     @Override
     public byte[] getContent() {
-        byte[] packetContent = header.getBytes();
-        return ByteBuffer.allocate(packetContent.length + this.chunk.length)
-                .put(packetContent).put(this.chunk).array();
+        byte[] headerBytes = header.getBytes();
+        byte[] bodyBytes = this.chunk;
+
+        return ByteBuffer.allocate(headerBytes.length + bodyBytes.length)
+                .put(headerBytes).put(bodyBytes).array();
     }
 
     @Override
     public String getType() {
         return type;
+    }
+
+    @Override
+    public int getHeaderLen() {
+        return 5;
     }
 }

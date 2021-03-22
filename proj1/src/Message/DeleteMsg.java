@@ -1,11 +1,11 @@
 package Message;
 
-public class FileDeletionMsg implements Message {
+public class DeleteMsg implements Message {
     public static final String type = "DELETE";
     private final String header;
     private final String fileId;
 
-    public FileDeletionMsg(String version, String id, String fileId) {
+    public DeleteMsg(String version, String id, String fileId) {
         this.fileId = fileId;
         this.header = version + " " +
                 type + " " +
@@ -26,6 +26,11 @@ public class FileDeletionMsg implements Message {
     @Override
     public String getType() {
         return type;
+    }
+
+    @Override
+    public int getHeaderLen() {
+        return 4;
     }
 
     @Override

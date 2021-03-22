@@ -5,7 +5,7 @@ import File.DigestFile;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-public class ChunkBackupMsg implements Message {
+public class PutChunkMsg implements Message {
     public static final String type = "PUTCHUNK";
     public static final int chunkIndex = 6;
     private final String header;
@@ -13,7 +13,7 @@ public class ChunkBackupMsg implements Message {
     private final Integer chunkNo;
     private byte[] chunk;
 
-    public ChunkBackupMsg(String version, String id, String fileId, int chunkNo, int replication, byte[] chunk) {
+    public PutChunkMsg(String version, String id, String fileId, int chunkNo, int replication, byte[] chunk) {
         this.header = version + " " +
                 type + " " +
                 id + " " +
@@ -25,7 +25,7 @@ public class ChunkBackupMsg implements Message {
         this.chunkNo = chunkNo;
         this.chunk = chunk;
     }
-    public ChunkBackupMsg(String version, String id, String fileId, int chunkNo, int replication, String filename) {
+    public PutChunkMsg(String version, String id, String fileId, int chunkNo, int replication, String filename) {
         this(version, id, fileId, chunkNo, replication, new byte[0]);
         try {
             this.chunk = DigestFile.readChunk(filename, chunkNo);
@@ -42,6 +42,10 @@ public class ChunkBackupMsg implements Message {
         return chunkNo;
     }
 
+    public byte[] getChunk() {
+        return this.chunk;
+    }
+
     @Override
     public byte[] getContent() {
         byte[] packetContent = header.getBytes();
@@ -52,6 +56,11 @@ public class ChunkBackupMsg implements Message {
     @Override
     public String getType() {
         return type;
+    }
+
+    @Override
+    public int getHeaderLen() {
+        return 6;
     }
 
     @Override

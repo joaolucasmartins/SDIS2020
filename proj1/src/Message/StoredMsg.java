@@ -1,12 +1,12 @@
 package Message;
 
-public class ChunkStoredMsg implements Message {
+public class StoredMsg implements Message {
     public static final String type = "STORED";
     private final String header;
     private final String fileId;
     private final int chunkNo;
 
-    public ChunkStoredMsg(String version, String id, String fileId, int chunkNo) {
+    public StoredMsg(String version, String id, String fileId, int chunkNo) {
         this.header = version + " " +
                 type + " " +
                 id + " " +
@@ -26,6 +26,11 @@ public class ChunkStoredMsg implements Message {
     @Override
     public String getType() {
         return type;
+    }
+
+    @Override
+    public int getHeaderLen() {
+        return 5;
     }
 
     @Override

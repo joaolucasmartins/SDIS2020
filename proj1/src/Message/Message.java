@@ -1,9 +1,5 @@
 package Message;
 
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.MulticastSocket;
-
 public interface Message {
     String CRLF = String.valueOf((char) 0xD) + String.valueOf((char) 0xA);
     int versionField = 0;
@@ -12,10 +8,10 @@ public interface Message {
     int fileField = 3;
     int chunkField = 4;
     int replicationField = 5;
-    int CRLFField = 6;
-    int bodyField = 7;
 
     byte[] getContent();
 
     String getType();
+
+    int getHeaderLen();
 }
