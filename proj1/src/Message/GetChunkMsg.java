@@ -2,7 +2,6 @@ package Message;
 
 public class GetChunkMsg implements Message {
     public static final String type = "GETCHUNK";
-    public static final int CRLFField = 5;
     private final String header;
     private final String fileId;
     private final Integer chunkNo;
@@ -34,5 +33,10 @@ public class GetChunkMsg implements Message {
     @Override
     public String getType() {
         return type;
+    }
+
+    @Override
+    public int getHeaderLen() {
+        return 5;
     }
 }

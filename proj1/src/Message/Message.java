@@ -16,4 +16,6 @@ public interface Message {
     byte[] getContent();
 
     String getType();
+
+    int getHeaderLen();
 }

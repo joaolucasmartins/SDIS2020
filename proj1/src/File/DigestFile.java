@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.Objects;
 
 public class DigestFile {
@@ -58,10 +59,13 @@ public class DigestFile {
 
     public static void deleteFile(String fileId) {
         File fileDir = new File(FILE_DIR + File.separator + fileId);
+        if (fileDir.listFiles() == null) return;
 
-        for (File f : Objects.requireNonNull(fileDir.listFiles())) {
-            System.out.println(f.getPath());
+        // to delete a directory, the directory must be empty
+        for (File f : fileDir.listFiles()) {
+            f.delete();
         }
+        fileDir.delete();
     }
 
     public static void writeChunk(Message message, String fileId, Integer chunkNo) throws IOException {
@@ -86,10 +90,8 @@ public class DigestFile {
     public static byte[] readChunk(String chunkpath) throws IOException {
         FileInputStream inputFile = new FileInputStream(FILE_DIR + chunkpath);
         byte[] b = new byte[MAX_CHUNK_SIZE];
-        System.err.println(b.length);
-        inputFile.read(b, 0, MAX_CHUNK_SIZE);
-        System.err.println(b.length);
-        return b;
+        int len = inputFile.read(b, 0, MAX_CHUNK_SIZE);
+        return Arrays.copyOfRange(b, 0, len);
     }
 
     public static byte[] readChunk(String filename, int chunkNo) throws IOException {

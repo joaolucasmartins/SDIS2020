@@ -9,7 +9,7 @@ all:
 	javac *.java
 
 clean:
-	rm *.class
+	rm -f *.class
 
 peer1: all
 	java Proj1 1.0 firth rmithing:1029 ${MC} ${MC_P} ${MDB} ${MDB_P} ${MDR} ${MDR_P}

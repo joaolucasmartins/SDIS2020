@@ -1,10 +1,10 @@
 import File.DigestFile;
 import Message.Message;
-import Message.ChunkBackupMsg;
+import Message.PutChunkMsg;
 import Message.ChunkMsg;
-import Message.ChunkStoredMsg;
+import Message.StoredMsg;
 import Message.GetChunkMsg;
-import Message.FileDeletionMsg;
+import Message.DeleteMsg;
 import Message.NoSuchMessage;
 
 import java.io.File;
@@ -56,8 +56,8 @@ public class MessageHandler {
         try {
             System.out.println("Received: " + Arrays.toString(header));
             switch (message.getType()) {
-                case ChunkBackupMsg.type:
-                    ChunkBackupMsg backupMsg = (ChunkBackupMsg) message;
+                case PutChunkMsg.type:
+                    PutChunkMsg backupMsg = (PutChunkMsg) message;
                     try {
                         DigestFile.writeChunk(backupMsg.getFileId() + File.separator + backupMsg.getChunkNo(),
                                 backupMsg.getChunk(), backupMsg.getChunk().length);
@@ -66,16 +66,16 @@ public class MessageHandler {
                         return;
                     }
                     // send STORED reply message
-                    Message response = new ChunkStoredMsg(this.protocolVersion, this.selfID,
+                    Message response = new StoredMsg(this.protocolVersion, this.selfID,
                             backupMsg.getFileId(), backupMsg.getChunkNo());
                     Random random = new Random();
                     this.MDBSock.send(response, random.nextInt(maxBackofMs));
                     break;
-                case ChunkStoredMsg.type:
+                case StoredMsg.type:
                     break;
-                case FileDeletionMsg.type:
+                case DeleteMsg.type:
                     // TODO delete file here
-                    FileDeletionMsg delMsg = (FileDeletionMsg) message;
+                    DeleteMsg delMsg = (DeleteMsg) message;
                     DigestFile.deleteFile(delMsg.getFileId());
                     return;  // file deletion doesn't send a reply
                 case GetChunkMsg.type:

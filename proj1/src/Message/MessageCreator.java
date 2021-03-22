@@ -1,7 +1,5 @@
 package Message;
 
-import java.nio.charset.StandardCharsets;
-
 import static java.lang.Integer.parseInt;
 
 public class MessageCreator {
@@ -13,16 +11,16 @@ public class MessageCreator {
         Message res = null;
         switch (header[Message.typeField]) {
             // Backup Subprotocol
-            case (ChunkBackupMsg.type):
-                res = new ChunkBackupMsg(header[Message.versionField],
+            case (PutChunkMsg.type):
+                res = new PutChunkMsg(header[Message.versionField],
                         header[Message.idField],
                         header[Message.fileField],
                         parseInt(header[Message.chunkField]),
                         parseInt(header[Message.replicationField]),
                         body.getBytes());
                 break;
-            case (ChunkStoredMsg.type):
-                res = new ChunkStoredMsg(header[Message.versionField],
+            case (StoredMsg.type):
+                res = new StoredMsg(header[Message.versionField],
                         header[Message.idField],
                         header[Message.fileField],
                         parseInt(header[Message.chunkField]));
@@ -42,8 +40,8 @@ public class MessageCreator {
                         body.getBytes());
                 break;
             // File deletion Subprotocol
-            case (FileDeletionMsg.type):
-                res = new FileDeletionMsg(header[Message.versionField],
+            case (DeleteMsg.type):
+                res = new DeleteMsg(header[Message.versionField],
                         header[Message.idField],
                         header[Message.fileField]);
                 break;
