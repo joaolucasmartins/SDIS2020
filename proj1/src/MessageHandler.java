@@ -1,11 +1,5 @@
 import File.DigestFile;
-import Message.Message;
-import Message.ChunkBackupMsg;
-import Message.ChunkMsg;
-import Message.ChunkStoredMsg;
-import Message.GetChunkMsg;
-import Message.FileDeletionMsg;
-import Message.NoSuchMessage;
+import Message.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -49,6 +43,7 @@ public class MessageHandler {
         }
         try {
             System.out.println("Received: " + Arrays.toString(receivedFields));
+            Message response;
             switch (message.getType()) {
                 case ChunkBackupMsg.type:
                     ChunkBackupMsg backupMsg = (ChunkBackupMsg) message;
@@ -59,7 +54,7 @@ public class MessageHandler {
                         e.printStackTrace();
                         return;
                     }
-                    Message response = new ChunkStoredMsg(this.protocolVersion, this.selfID,
+                    response = new ChunkStoredMsg(this.protocolVersion, this.selfID,
                             backupMsg.getFileId(), backupMsg.getChunkNo());
                     Random random = new Random();
                     this.MDBSock.send(response, random.nextInt(401)); //TODO make 401 a static member?
@@ -81,6 +76,11 @@ public class MessageHandler {
                 case ChunkMsg.type:
                     ChunkMsg chunkMsg = (ChunkMsg) message;
                     DigestFile.writeChunk(chunkMsg, chunkMsg.getFileId(), chunkMsg.getChunkNo());
+                    break;
+                case RemovedMsg.type:
+                    RemovedMsg removedMsg = (RemovedMsg) message;
+                    // TODO If rep degree then PUTCHUNK
+                    break;
                 default:
                     // unreachable
                     break;

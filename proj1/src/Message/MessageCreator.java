@@ -9,7 +9,7 @@ public class MessageCreator {
     private static boolean containsCRLF(String body) {
         return body.substring(0, 4).equals(Message.CRLF + Message.CRLF);
     }
-    public static Message createMessage(String received) throws NoSuchMessage {
+    public static Message createMessage(String received) throws NoSuchMessage { // TODO Make version correspond with peer and not incoming msg
         String[] message = received.split(" ", Message.CRLFField + 1);
         String body;
         Message res;
@@ -56,6 +56,16 @@ public class MessageCreator {
                         message[Message.fileField],
                         parseInt(message[Message.chunkField]),
                         body.substring(5).getBytes(StandardCharsets.UTF_8));
+            case (RemovedMsg.type):
+                body = message[RemovedMsg.CRLFField];
+                System.out.println("Body" + body);
+                if (!containsCRLF(body)) {
+                    res = null;
+                    break; // TODO Throw new exception here?
+                }
+                res = new RemovedMsg(message[Message.versionField], message[Message.idField],
+                        message[Message.fileField],
+                        parseInt(message[Message.chunkField]));
                 break;
             default:
                 throw new NoSuchMessage(message[Message.typeField]);

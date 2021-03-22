@@ -2,6 +2,7 @@ import File.DigestFile;
 import Message.ChunkBackupMsg;
 import Message.GetChunkMsg;
 import Message.FileDeletionMsg;
+import Message.RemovedMsg;
 
 import java.io.IOException;
 import java.net.*;
@@ -109,8 +110,14 @@ public class Proj1 implements TestInterface {
                                 "0fe051a9f8f8de449f1b251d5ad4c78e62d5ff9393b7d9eb3e577e394354f4b4",
                                 0));
 
+            } else if (cmd.equals("removed")) {
+                this.MDBSock.send(
+                        new RemovedMsg("1.0", this.id,
+                                "0fe051a9f8f8de449f1b251d5ad4c78e62d5ff9393b7d9eb3e577e394354f4b4",
+                                0));
+
             }
-        } while (!cmd.equalsIgnoreCase("EXIT"));
+    } while (!cmd.equalsIgnoreCase("EXIT"));
 
         // shush threads
         this.MCSock.interrupt();
