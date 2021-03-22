@@ -4,10 +4,10 @@ import File.DigestFile;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 
 public class ChunkBackupMsg implements Message {
-    static final String type = "PUTCHUNK";
+    public static final String type = "PUTCHUNK";
+    public static final int chunkIndex = 6;
     private final String header;
     private final String fileId;
     private final Integer chunkNo;
@@ -50,7 +50,12 @@ public class ChunkBackupMsg implements Message {
     }
 
     @Override
-    public void log() {
-        System.out.println("Sent: " + header);
+    public String getType() {
+        return type;
+    }
+
+    @Override
+    public String toString() {
+        return type + " " + this.fileId + " chunkno. " + this.chunkNo;
     }
 }

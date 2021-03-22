@@ -1,8 +1,10 @@
 package Message;
 
 public class ChunkStoredMsg implements Message {
-    static final String type = "STORED";
+    public static final String type = "STORED";
     private final String header;
+    private final String fileId;
+    private final int chunkNo;
 
     public ChunkStoredMsg(String version, String id, String fileId, int chunkNo) {
         this.header = version + " " +
@@ -11,6 +13,9 @@ public class ChunkStoredMsg implements Message {
                 fileId + " " +
                 chunkNo + " " +
                 Message.CRLF + Message.CRLF;
+
+        this.fileId = fileId;
+        this.chunkNo = chunkNo;
     }
 
     @Override
@@ -19,7 +24,12 @@ public class ChunkStoredMsg implements Message {
     }
 
     @Override
-    public void log() {
-        System.out.println("Sent: " + header);
+    public String getType() {
+        return type;
+    }
+
+    @Override
+    public String toString() {
+        return type + " " + this.fileId + " chunkno. " + this.chunkNo;
     }
 }

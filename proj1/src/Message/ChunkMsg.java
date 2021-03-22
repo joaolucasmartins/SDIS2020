@@ -7,7 +7,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public class ChunkMsg implements Message {
-    static final String type = "CHUNK";
+    public static final String type = "CHUNK";
     public static final int CRLFField = 5;
     private final String header;
     private final String fileId;
@@ -60,7 +60,7 @@ public class ChunkMsg implements Message {
     }
 
     @Override
-    public void log() {
-        System.out.println("Sent: " + header);
+    public String getType() {
+        return type;
     }
 }

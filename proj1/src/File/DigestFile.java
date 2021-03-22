@@ -25,10 +25,10 @@ public class DigestFile {
 
         // Hash with absolute path, owner, last modified time and first 256 bytes
         StringBuilder bitString = new StringBuilder(
-                        file.toAbsolutePath().toString() +
+                file.toAbsolutePath().toString() +
                         Files.getOwner(file) +
                         Files.getLastModifiedTime(file)
-                    );
+        );
         for (int i = 0; i < len; ++i) // Add 256 bytes
             bitString.append((char) b[i]);
 
@@ -89,7 +89,7 @@ public class DigestFile {
         String fileId = getHash(filename);
         FileInputStream inputFile = new FileInputStream(FILE_DIR + filename);
         byte[] b = new byte[MAX_CHUNK_SIZE];
-        int n, i=0;
+        int n, i = 0;
 
         if (surpassesMaxChunks(filename))
             throw new MasNaoTeVouAlocar();
@@ -112,7 +112,8 @@ public class DigestFile {
         File f = new File(FILE_DIR + filename);
         f.getParentFile().mkdirs();
         if (!f.createNewFile()) return;
-        FileOutputStream file = new FileOutputStream(f);;
+        FileOutputStream file = new FileOutputStream(f);
+        ;
 
         while (!done) {
             String chunkpath = FILE_DIR + file_id + File.separator + i;

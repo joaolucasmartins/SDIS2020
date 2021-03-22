@@ -17,5 +17,5 @@ public interface Message {
 
     byte[] getContent();
 
-    void log();
+    String getType();
 }

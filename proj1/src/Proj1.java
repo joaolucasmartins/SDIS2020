@@ -1,9 +1,11 @@
 import File.DigestFile;
 import Message.ChunkBackupMsg;
 import Message.GetChunkMsg;
+import Message.FileDeletionMsg;
 
 import java.io.IOException;
 import java.net.*;
+import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -95,8 +97,9 @@ public class Proj1 implements TestInterface {
                 try {
                     DigestFile.divideFile("filename.txt");
                     this.MDBSock.send(
-                    new ChunkBackupMsg("1.0", this.id,
-                            DigestFile.getHash("filename.txt"), 0, 9, "filename.txt"));
+                            new ChunkBackupMsg("1.0", this.id,
+                                    DigestFile.getHash("filename.txt"),
+                                    0, 9, "filename.txt"));
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -145,18 +148,18 @@ public class Proj1 implements TestInterface {
         assert prog != null;
 
         // setup the access point
+        TestInterface stub = null;
+        Registry registry = null;
+        String rmiName = null;
         try {
-            TestInterface stub = (TestInterface) UnicastRemoteObject.exportObject(prog, 0);
+            stub = (TestInterface) UnicastRemoteObject.exportObject(prog, 0);
             String[] rmiinfoSplit = prog.getAccessPointName().split(":");
-            Registry registry;
-            if (rmiinfoSplit.length > 1) {
-
-                System.out.println("connecting to " + Integer.parseInt(rmiinfoSplit[1]));
+            rmiName = rmiinfoSplit[0];
+            if (rmiinfoSplit.length > 1)
                 registry = LocateRegistry.getRegistry("localhost", Integer.parseInt(rmiinfoSplit[1]));
-            }
             else
                 registry = LocateRegistry.getRegistry();
-            registry.bind(rmiinfoSplit[0], stub);
+            registry.bind(rmiName, stub);
         } catch (Exception e) {
             System.err.println("Setting up the access point for testing failed.");
             e.printStackTrace();
@@ -164,6 +167,16 @@ public class Proj1 implements TestInterface {
 
         prog.mainLoop();
         prog.closeSockets();
+
+        // cleanup the access point
+        if (registry != null) {
+            try {
+                registry.unbind(rmiName);
+                UnicastRemoteObject.unexportObject(prog, false);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     /* USED BY THE TestApp (RMI) */
@@ -179,7 +192,15 @@ public class Proj1 implements TestInterface {
 
     @Override
     public String delete(String filePath) throws RemoteException {
-        return "delete";
+        try {
+            String fileHash = DigestFile.getHash(filePath);
+            FileDeletionMsg msg = new FileDeletionMsg(this.protocolVersion, this.id, fileHash);
+            this.MCSock.send(msg);
+            return "Deleted file " + filePath + " with hash " + fileHash + ".";
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return "Deletion of " + filePath + " failed.";
     }
 
     @Override

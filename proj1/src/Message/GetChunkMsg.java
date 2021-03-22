@@ -1,7 +1,7 @@
 package Message;
 
 public class GetChunkMsg implements Message {
-    static final String type = "GETCHUNK";
+    public static final String type = "GETCHUNK";
     public static final int CRLFField = 5;
     private final String header;
     private final String fileId;
@@ -32,7 +32,7 @@ public class GetChunkMsg implements Message {
     }
 
     @Override
-    public void log() {
-        System.out.println("Sent: " + header);
+    public String getType() {
+        return type;
     }
 }
