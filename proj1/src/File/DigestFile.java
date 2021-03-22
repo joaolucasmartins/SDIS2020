@@ -86,7 +86,9 @@ public class DigestFile {
     public static byte[] readChunk(String chunkpath) throws IOException {
         FileInputStream inputFile = new FileInputStream(FILE_DIR + chunkpath);
         byte[] b = new byte[MAX_CHUNK_SIZE];
+        System.err.println(b.length);
         inputFile.read(b, 0, MAX_CHUNK_SIZE);
+        System.err.println(b.length);
         return b;
     }
 

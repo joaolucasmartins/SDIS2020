@@ -37,7 +37,6 @@ public class MessageHandler {
         final String[] receivedFields = received.split(Message.CRLF, 3);
         final String[] header = receivedFields[0].split(" ");
         final String body = (receivedFields.length > 2) ? receivedFields[2] : null;
-        System.err.println("AAAAAAAAAAAAAAA: " + received.length());
 
         if (header[Message.idField].equals(this.selfID)) {
             System.out.println("We were the ones that sent this message. Skipping..");
