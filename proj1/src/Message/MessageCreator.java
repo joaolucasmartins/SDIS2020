@@ -1,6 +1,7 @@
 package Message;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 import static java.lang.Integer.parseInt;
 
@@ -9,7 +10,7 @@ public class MessageCreator {
         return body.substring(0, 4).equals(Message.CRLF + Message.CRLF);
     }
     public static Message createMessage(String received) throws NoSuchMessage {
-        String[] message = received.split(" ", Message.CRLFField);
+        String[] message = received.split(" ", Message.CRLFField + 1);
         String body;
         Message res;
 
@@ -46,6 +47,7 @@ public class MessageCreator {
                 break;
             case (ChunkMsg.type):
                 body = message[ChunkMsg.CRLFField];
+                System.out.println("Body" + body);
                 if (!containsCRLF(body)) {
                     res = null;
                     break; // TODO Throw new exception here?

@@ -2,6 +2,7 @@ package Message;
 
 public class GetChunkMsg implements Message {
     static final String type = "GETCHUNK";
+    public static final int CRLFField = 5;
     private final String header;
     private final String fileId;
     private final Integer chunkNo;

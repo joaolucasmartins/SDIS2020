@@ -2,11 +2,13 @@ package Message;
 
 import File.DigestFile;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public class ChunkMsg implements Message {
     static final String type = "CHUNK";
+    public static final int CRLFField = 5;
     private final String header;
     private final String fileId;
     private final Integer chunkNo;
@@ -28,6 +30,15 @@ public class ChunkMsg implements Message {
         this(version, id, fileId, chunkNo, new byte[0]);
         try {
             this.chunk = DigestFile.readChunk(filename, chunkNo);
+        } catch (IOException e) {
+            e.printStackTrace(); // TODO Fail if chunk isn't here
+        }
+    }
+
+    public ChunkMsg(String version, String id, String fileId, int chunkNo) {
+        this(version, id, fileId, chunkNo, new byte[0]);
+        try {
+            this.chunk = DigestFile.readChunk(fileId + File.separator + chunkNo);
         } catch (IOException e) {
             e.printStackTrace(); // TODO Fail if chunk isn't here
         }

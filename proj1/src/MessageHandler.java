@@ -1,7 +1,9 @@
 import File.DigestFile;
 import Message.Message;
 import Message.ChunkBackupMsg;
+import Message.ChunkMsg;
 import Message.ChunkStoredMsg;
+import Message.GetChunkMsg;
 
 import java.io.File;
 import java.util.Arrays;
@@ -28,12 +30,12 @@ public class MessageHandler {
     }
 
     public void handleMessage(SockThread sock, String received) {
-        String[] receivedFields = received.split(" ", Message.idField);
+        String[] receivedFields = received.split(" ", Message.idField + 1);
         if (receivedFields[Message.idField].equals(this.selfID)) {
             System.out.println("We were the ones that sent this message. Skipping..");
         } else {
 
-            try {
+            try { // TODO Check for sender id for multiple peers
                 System.out.println("Received " + Arrays.toString(receivedFields));
                 Message message = createMessage(received);
 
@@ -45,6 +47,21 @@ public class MessageHandler {
                             backupMsg.getFileId(), backupMsg.getChunkNo());
                     Random random = new Random();
                     this.MDBSock.send(response, random.nextInt(401)); //TODO make 401 a static member?
+                }
+
+                if (message.getClass() == GetChunkMsg.class) {
+                    GetChunkMsg getChunkMsg = (GetChunkMsg) message;
+                    if (DigestFile.hasChunk(getChunkMsg.getFileId(), getChunkMsg.getChunkNo())) {
+                        // TODO Thread here
+                        ChunkMsg response = new ChunkMsg(this.protocolVersion, this.selfID,
+                                getChunkMsg.getFileId(), getChunkMsg.getChunkNo());
+                        this.MCSock.send(response, new Random().nextInt(401));
+                    }
+                }
+
+                if (message.getClass() == ChunkMsg.class) {
+                    ChunkMsg getChunkMsg = (ChunkMsg) message;
+                    DigestFile.writeChunk(getChunkMsg, getChunkMsg.getFileId(), getChunkMsg.getChunkNo());
                 }
             } catch (Exception e) {
                 e.printStackTrace();

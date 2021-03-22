@@ -1,5 +1,7 @@
 package File;
 
+import Message.Message;
+
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -7,13 +9,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
 
 public class DigestFile {
-    final static Integer CHUNK_LEN = 256;
+    private final static Integer CHUNK_LEN = 256;
     private static final int MAX_CHUNK_SIZE = 64000;
     private static final int MAX_CHUNK_NUM = 999999;
-    final static String FILE_DIR = "." + File.separator + "files" + File.separator;
+    private final static String FILE_DIR = "." + File.separator + "files" + File.separator;
 
     private static String getBitString(String filename) throws IOException {
         Path file = Paths.get(FILE_DIR + filename);
@@ -54,6 +55,11 @@ public class DigestFile {
         return ((Files.size(file) / MAX_CHUNK_SIZE) > MAX_CHUNK_NUM);
     }
 
+    public static void writeChunk(Message message, String fileId, Integer chunkNo) throws IOException {
+        byte[] content = message.getContent();
+        writeChunk(fileId + File.separator + chunkNo, content, content.length);
+    }
+
     public static void writeChunk(String chunkpath, byte[] b, int n) throws IOException {
         String path = FILE_DIR + File.separator + chunkpath;
         File f = new File(path);
@@ -68,12 +74,15 @@ public class DigestFile {
         }
     }
 
-    public static byte[] readChunk(String filename, int chunkNo) throws IOException {
-        FileInputStream inputFile = new FileInputStream(FILE_DIR + getHash(filename) +
-                File.separator + chunkNo);
+    public static byte[] readChunk(String chunkpath) throws IOException {
+        FileInputStream inputFile = new FileInputStream(FILE_DIR + chunkpath);
         byte[] b = new byte[MAX_CHUNK_SIZE];
         inputFile.read(b, 0, MAX_CHUNK_SIZE);
         return b;
+    }
+
+    public static byte[] readChunk(String filename, int chunkNo) throws IOException {
+        return readChunk(getHash(filename) + File.separator + chunkNo);
     }
 
     public static void divideFile(String filename) throws IOException {
@@ -116,6 +125,12 @@ public class DigestFile {
             }
             ++i;
         }
+    }
+
+    public static boolean hasChunk(String hash, Integer chunkNo) {
+        File file = new File(FILE_DIR + hash +
+                File.separator + chunkNo);
+        return file.exists();
     }
 
     public static void main(String[] args) {

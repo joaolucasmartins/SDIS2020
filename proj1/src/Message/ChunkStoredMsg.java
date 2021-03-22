@@ -15,8 +15,7 @@ public class ChunkStoredMsg implements Message {
 
     @Override
     public byte[] getContent() {
-        byte[] packetContent = header.getBytes();
-        return packetContent;
+        return header.getBytes();
     }
 
     @Override
