@@ -42,6 +42,10 @@ public class ChunkBackupMsg implements Message {
         return chunkNo;
     }
 
+    public byte[] getChunk() {
+        return this.chunk;
+    }
+
     @Override
     public byte[] getContent() {
         byte[] packetContent = header.getBytes();

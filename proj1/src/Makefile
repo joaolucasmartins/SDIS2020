@@ -18,7 +18,7 @@ peer2: all
 	java Proj1 1.0 secondrth rmithing2:1030 ${MC} ${MC_P} ${MDB} ${MDB_P} ${MDR} ${MDR_P}
 
 test_backup: all
-	java TestApp rmithing:1029 BACKUP test.txt 3
+	java TestApp rmithing:1029 BACKUP filename.txt 3
 
 test_del: all
 	java TestApp rmithing:1029 DELETE filename.txt

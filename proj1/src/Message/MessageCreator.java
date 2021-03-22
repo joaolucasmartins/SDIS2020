@@ -1,7 +1,6 @@
 package Message;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 
 import static java.lang.Integer.parseInt;
 
@@ -9,57 +8,50 @@ public class MessageCreator {
     private static boolean containsCRLF(String body) {
         return body.substring(0, 4).equals(Message.CRLF + Message.CRLF);
     }
-    public static Message createMessage(String received) throws NoSuchMessage {
-        String[] message = received.split(" ", Message.CRLFField + 1);
-        String body;
-        Message res;
 
-        switch (message[Message.typeField]) {
+    public static Message createMessage(String[] header, String body) throws NoSuchMessage {
+        Message res = null;
+        switch (header[Message.typeField]) {
             // Backup Subprotocol
             case (ChunkBackupMsg.type):
-                body = message[ChunkBackupMsg.CRLFField];
-                if (!containsCRLF(body)) {
-                    res = null;
-                    break; // TODO Throw new exception here?
-                }
-                res = new ChunkBackupMsg(message[Message.versionField], message[Message.idField],
-                        message[Message.fileField],
-                        parseInt(message[Message.chunkField]),
-                        parseInt(message[Message.replicationField]),
-                        body.substring(5).getBytes(StandardCharsets.UTF_8));
-
+                res = new ChunkBackupMsg(header[Message.versionField],
+                        header[Message.idField],
+                        header[Message.fileField],
+                        parseInt(header[Message.chunkField]),
+                        parseInt(header[Message.replicationField]),
+                        body.getBytes());
                 break;
             case (ChunkStoredMsg.type):
-                res = new ChunkStoredMsg(message[Message.versionField], message[Message.idField],
-                        message[Message.fileField],
-                        parseInt(message[Message.chunkField]));
+                res = new ChunkStoredMsg(header[Message.versionField],
+                        header[Message.idField],
+                        header[Message.fileField],
+                        parseInt(header[Message.chunkField]));
                 break;
             // Restore Subprotocol
             case (GetChunkMsg.type):
-                body = message[GetChunkMsg.CRLFField];
-                if (!containsCRLF(body)) {
-                    res = null;
-                    break; // TODO Throw new exception here?
-                }
-                res = new GetChunkMsg(message[Message.versionField], message[Message.idField],
-                        message[Message.fileField],
-                        parseInt(message[Message.chunkField]));
+                res = new GetChunkMsg(header[Message.versionField],
+                        header[Message.idField],
+                        header[Message.fileField],
+                        parseInt(header[Message.chunkField]));
                 break;
             case (ChunkMsg.type):
-                body = message[ChunkMsg.CRLFField];
-                System.out.println("Body" + body);
-                if (!containsCRLF(body)) {
-                    res = null;
-                    break; // TODO Throw new exception here?
-                }
-                res = new ChunkMsg(message[Message.versionField], message[Message.idField],
-                        message[Message.fileField],
-                        parseInt(message[Message.chunkField]),
-                        body.substring(5).getBytes(StandardCharsets.UTF_8));
+                res = new ChunkMsg(header[Message.versionField],
+                        header[Message.idField],
+                        header[Message.fileField],
+                        parseInt(header[Message.chunkField]),
+                        body.getBytes());
+                break;
+            // File deletion Subprotocol
+            case (FileDeletionMsg.type):
+                res = new FileDeletionMsg(header[Message.versionField],
+                        header[Message.idField],
+                        header[Message.fileField]);
                 break;
             default:
-                throw new NoSuchMessage(message[Message.typeField]);
+                throw new NoSuchMessage(header[Message.typeField]);
         }
+
+        assert res != null;
         return res;
     }
 }
