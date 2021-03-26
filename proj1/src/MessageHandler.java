@@ -91,7 +91,7 @@ public class MessageHandler {
                         // TODO Thread here
                         response = new ChunkMsg(this.protocolVersion, this.selfID,
                                 getChunkMsg.getFileId(), getChunkMsg.getChunkNo());
-                        this.MCSock.send(response, new Random().nextInt(401));
+                        this.MDRSock.send(response, new Random().nextInt(401));
                     }
                     break;
                 case ChunkMsg.type:
@@ -100,7 +100,10 @@ public class MessageHandler {
                     break;
                 case RemovedMsg.type:
                     RemovedMsg removedMsg = (RemovedMsg) message;
-                    // TODO If rep degree then PUTCHUNK
+
+                    // TODO update chunk local copy count
+                    // TODO initiate the chunk backup subprotocol after random delay
+                    // TODO if during this time, we get a PUTCHUNK for this chunk => back off
                     break;
                 default:
                     // unreachable

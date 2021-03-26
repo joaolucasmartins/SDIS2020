@@ -2,10 +2,9 @@ package Message;
 
 public class RemovedMsg implements Message {
     public static final String type = "REMOVED";
-    public static final int CRLFField = 5;
     private final String header;
     private final String fileId;
-    private final int chunkNo;
+    private final Integer chunkNo;
 
     public RemovedMsg(String version, String id, String fileId, int chunkNo) {
         this.header = version + " " +
@@ -22,9 +21,13 @@ public class RemovedMsg implements Message {
         return fileId;
     }
 
+    public Integer getChunkNo() {
+        return chunkNo;
+    }
+
     @Override
     public byte[] getContent() {
-        return this.header.getBytes();
+        return header.getBytes();
     }
 
     @Override

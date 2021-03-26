@@ -46,17 +46,18 @@ public class MessageCreator {
                         parseInt(header[Message.chunkField]),
                         body.substring(5).getBytes(StandardCharsets.UTF_8));
                 break;
-            case (RemovedMsg.type):
-                res = new RemovedMsg(header[Message.versionField], header[Message.idField],
-                        header[Message.fileField],
-                        parseInt(header[Message.chunkField]));
-                break;
-
             // File deletion Subprotocol
             case (DeleteMsg.type):
                 res = new DeleteMsg(header[Message.versionField],
                         header[Message.idField],
                         header[Message.fileField]);
+                break;
+            // Space reclaim Subprotocol
+            case (RemovedMsg.type):
+                res = new RemovedMsg(header[Message.versionField],
+                        header[Message.idField],
+                        header[Message.fileField],
+                        parseInt(header[Message.chunkField]));
                 break;
             default:
                 throw new NoSuchMessage(header[Message.typeField]);

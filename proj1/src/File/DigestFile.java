@@ -18,6 +18,7 @@ public class DigestFile {
     private static final int MAX_CHUNK_NUM = 999999;
     private final static String FILE_DIR = "." + File.separator + "files" + File.separator;
 
+    /* file metadata used to get a hash */
     private static String getBitString(String filename) throws IOException {
         Path file = Paths.get(FILE_DIR + filename);
         FileInputStream inputStream = new FileInputStream(FILE_DIR + filename);
@@ -37,6 +38,7 @@ public class DigestFile {
         return bitString.toString();
     }
 
+    /* get the hash that identifies a given file */
     public static String getHash(String filename) throws IOException {
         String bitString = getBitString(filename);
         try {
@@ -52,11 +54,20 @@ public class DigestFile {
         return "";
     }
 
+    /* checks if a file needs more chunks to be stored than the maximum allowed */
     private static boolean surpassesMaxChunks(String filename) throws IOException {
         Path file = Paths.get(FILE_DIR + filename);
         return ((Files.size(file) / MAX_CHUNK_SIZE) > MAX_CHUNK_NUM);
     }
 
+    /* returns the number of chunks used to store a given file. -1 if the file is too big */
+    public static int getChunkCount(String filename) throws IOException {
+        if (surpassesMaxChunks(filename)) return -1;
+        Path file = Paths.get(FILE_DIR + filename);
+        return (int) ((Files.size(file) / MAX_CHUNK_SIZE) + 1);
+    }
+
+    /* deletes a directory (that represents a file by containing its chunks) and its contents */
     public static void deleteFile(String fileId) {
         File fileDir = new File(FILE_DIR + File.separator + fileId);
         if (fileDir.listFiles() == null) return;
@@ -68,11 +79,7 @@ public class DigestFile {
         fileDir.delete();
     }
 
-    public static void writeChunk(Message message, String fileId, Integer chunkNo) throws IOException {
-        byte[] content = message.getContent();
-        writeChunk(fileId + File.separator + chunkNo, content, content.length);
-    }
-
+    /* Write a chunk to a file */
     public static void writeChunk(String chunkpath, byte[] b, int n) throws IOException {
         String path = FILE_DIR + File.separator + chunkpath;
         File f = new File(path);
@@ -87,6 +94,12 @@ public class DigestFile {
         }
     }
 
+    public static void writeChunk(Message message, String fileId, Integer chunkNo) throws IOException {
+        byte[] content = message.getContent();
+        writeChunk(fileId + File.separator + chunkNo, content, content.length);
+    }
+
+    /* reads the contents of a chunk */
     public static byte[] readChunk(String chunkpath) throws IOException {
         FileInputStream inputFile = new FileInputStream(FILE_DIR + chunkpath);
         byte[] b = new byte[MAX_CHUNK_SIZE];
@@ -98,6 +111,7 @@ public class DigestFile {
         return readChunk(getHash(filename) + File.separator + chunkNo);
     }
 
+    /* divide a file into chunks */
     public static void divideFile(String filename) throws IOException {
         String fileId = getHash(filename);
         FileInputStream inputFile = new FileInputStream(FILE_DIR + filename);
@@ -117,6 +131,7 @@ public class DigestFile {
         writeChunk(chunkpath, b, n);
     }
 
+    /* reassemble a file from its chunks */
     public static void assembleFile(String filename, String file_id) throws IOException {
         byte[] b = new byte[MAX_CHUNK_SIZE];
         int i = 0;
@@ -141,6 +156,7 @@ public class DigestFile {
         }
     }
 
+    /* returns whether or not we have this chnk stored */
     public static boolean hasChunk(String hash, Integer chunkNo) {
         File file = new File(FILE_DIR + hash +
                 File.separator + chunkNo);
