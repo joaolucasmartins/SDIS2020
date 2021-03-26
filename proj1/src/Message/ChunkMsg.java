@@ -5,7 +5,6 @@ import File.DigestFile;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 
 public class ChunkMsg implements Message {
     public static final String type = "CHUNK";

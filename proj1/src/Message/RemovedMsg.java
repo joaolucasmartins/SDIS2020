@@ -39,4 +39,9 @@ public class RemovedMsg implements Message {
     public int getHeaderLen() {
         return 5;
     }
+
+    @Override
+    public String toString() {
+        return type + " " + this.fileId;
+    }
 }
