@@ -1,20 +1,24 @@
 import File.DigestFile;
 import Message.*;
+import utils.Pair;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Random;
 
 import static Message.MessageCreator.createMessage;
 
 public class MessageHandler {
+    private final String repMapName = "repMap.txt";
     public final int maxBackofMs = 401;
     private final String selfID;
     private final String protocolVersion;
     private final SockThread MCSock;
     private final SockThread MDBSock;
     private final SockThread MDRSock;
+    private Map<String, Pair<Integer, Map<Integer, Integer>>> replicationDegMap;
 
     public MessageHandler(String selfID, String protocolVersion, SockThread MCSock, SockThread MDBSock, SockThread MDRSock) {
         this.selfID = selfID;
@@ -25,8 +29,16 @@ public class MessageHandler {
         this.MCSock.setHandler(this);
         this.MDBSock.setHandler(this);
         this.MDRSock.setHandler(this);
+        this.replicationDegMap = DigestFile.importMap(repMapName);
     }
 
+    public void saveMap() {
+        try {
+            DigestFile.exportMap(replicationDegMap, repMapName);
+        } catch (IOException e) {
+            e.printStackTrace(); // TODO handle this?
+        }
+    }
     public void handleMessage(SockThread sock, String received) {
         final String[] receivedFields = received.split(Message.CRLF, 3);
         final String[] header = receivedFields[0].split(" ");

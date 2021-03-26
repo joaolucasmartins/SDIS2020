@@ -1,6 +1,7 @@
 package File;
 
 import Message.Message;
+import utils.Pair;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -9,8 +10,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
-import java.util.Objects;
+import java.util.*;
 
 public class DigestFile {
     private final static Integer CHUNK_LEN = 256;
@@ -148,15 +148,78 @@ public class DigestFile {
     }
 
     public static void main(String[] args) {
-        try {
-            String filename = "filename.rar";
+        //try {
+            //String filename = "filename.rar";
             // String h = getHash(filename);
             // divideFile(filename);
 
-            String id = "416ebf6f9e407ba10294e58cbcdc1ef55b0920cd6fd6255fe6767528ddf50aba";
-            assembleFile(filename, id);
+       //     String id = "416ebf6f9e407ba10294e58cbcdc1ef55b0920cd6fd6255fe6767528ddf50aba";
+       //     assembleFile(filename, id);
+       // } catch (IOException e) {
+       //     e.printStackTrace();
+       // }
+       Map<String, Pair<Integer, Map<Integer, Integer>>> map = importMap("fileMap.txt");
+        for (var entry : map.keySet()) {
+           for (var entry2 : map.get(entry).p2.keySet()) {
+               String hash = entry;
+               Integer repDeg = map.get(entry).p1;
+               Integer chunkNo = entry2;
+               Integer perceviedDeg = map.get(entry).p2.get(entry2);
+               System.out.println(hash + " " + repDeg.toString() + " " + chunkNo.toString() + " " + perceviedDeg.toString());
+           }
+       }
+        try {
+            exportMap(map, "test.txt");
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public static Map<String, Pair<Integer, Map<Integer, Integer>>> importMap(String repMapName) {
+        Scanner scanner;
+        try {
+            scanner = new Scanner(new File(repMapName));
+        } catch (FileNotFoundException e) {
+            return new HashMap<>();
+        }
+        String line, previousHash = "";
+        Integer fileRepDegree = -1;
+        Map<Integer, Integer> chunkMap = new HashMap<>();
+        Map<String, Pair<Integer, Map<Integer, Integer>>> fileMap = new HashMap<>();
+        while (scanner.hasNextLine()) {
+            line = scanner.nextLine();
+            String[] contents = line.split(" ");
+            String hash = contents[0];
+            Integer chunkNo = Integer.valueOf(contents[2]),
+                    perceivedRepDeg = Integer.valueOf(contents[3]);
+            if (!previousHash.equals(hash) && !previousHash.equals("")) { // New hash, commit to fileMap
+                fileMap.put(previousHash, new Pair<>(fileRepDegree, chunkMap));
+                chunkMap = new HashMap<>(); // Reset chunk map
+                chunkMap.put(chunkNo, perceivedRepDeg);
+            } else {
+                chunkMap.put(chunkNo, perceivedRepDeg);
+            }
+            fileRepDegree = Integer.valueOf(contents[1]);
+            previousHash = hash;
+        }
+        fileMap.put(previousHash, new Pair<>(fileRepDegree, chunkMap));
+        return fileMap;
+    }
+
+    public static void exportMap(Map<String, Pair<Integer, Map<Integer, Integer>>> map, String repMapName) throws IOException {
+        BufferedWriter wr = new BufferedWriter(new FileWriter(repMapName));
+
+        for (var hash : map.keySet()) {
+            Pair<Integer, Map<Integer, Integer>> pair = map.get(hash);
+            Integer repDeg = pair.p1;
+            Map<Integer, Integer> chunkMap = pair.p2;
+            for (var chunkNo : chunkMap.keySet()) {
+                Integer perceviedDeg = chunkMap.get(chunkNo);
+                wr.write(hash + " " + repDeg + " " + chunkNo + " " + perceviedDeg);
+                System.out.println(hash + " " + repDeg + " " + chunkNo + " " + perceviedDeg + "?");
+                wr.newLine();
+            }
+        }
+        wr.close();
     }
 }
