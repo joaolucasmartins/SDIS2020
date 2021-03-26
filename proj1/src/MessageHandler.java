@@ -6,6 +6,7 @@ import Message.StoredMsg;
 import Message.GetChunkMsg;
 import Message.DeleteMsg;
 import Message.NoSuchMessage;
+import Message.RemovedMsg;
 
 import java.io.File;
 import java.io.IOException;
@@ -84,12 +85,19 @@ public class MessageHandler {
                         // TODO Thread here
                         response = new ChunkMsg(this.protocolVersion, this.selfID,
                                 getChunkMsg.getFileId(), getChunkMsg.getChunkNo());
-                        this.MCSock.send(response, new Random().nextInt(401));
+                        this.MDRSock.send(response, new Random().nextInt(401));
                     }
                     break;
                 case ChunkMsg.type:
                     ChunkMsg chunkMsg = (ChunkMsg) message;
                     DigestFile.writeChunk(chunkMsg, chunkMsg.getFileId(), chunkMsg.getChunkNo());
+                    break;
+                case RemovedMsg.type:
+                    RemovedMsg removedMsg = (RemovedMsg) message;
+                    // TODO update chunk local copy count
+                    // TODO initiate the chunk backup subprotocol after random delay
+                    // TODO if during this time, we get a PUTCHUNK for this chunk => back off
+                    break;
                 default:
                     // unreachable
                     break;

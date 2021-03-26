@@ -11,26 +11,8 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
 
-/*
-Multicast allows communication between different containers to be used on different
-computers (in this case, you should use different terminals for this purpose).
-The containers should be specified by a port and an IP address within the range
-224.0.0.0 and 239.255.255.255, which are IPs reserved for multicast communications.
-
-Periodically send its IP and port to the multicast group to know that it is
-    working correctly. Clients should join that group and then send messages with
-    the desired requests. In this case, you should use MulticastSockets instead
-    of DatagramSockets to achieve the desired multicast communication.
-    To do the "register" and "lookup" operations, you should use
-    the same method that you used in Lab1.
-
-    To create a more robust system, I advise you to use more than one thread.
-    You can use the functions provided by Timer and TimerTask (package “java.util”)
-    or ScheduledThreadPoolExecutor (package “java.util.concurrent”). The last one
-    is more sophisticated but also more difficult to implement and use.
-    */
-
 public class Proj1 implements TestInterface {
+    private int maxDiskSpaceKB = -1;  // -1 means no limit
     // cmd line arguments
     private final String protocolVersion;
     private final String id;
@@ -186,7 +168,21 @@ public class Proj1 implements TestInterface {
 
     @Override
     public String restore(String filePath) throws RemoteException {
-        return "restore";
+        try {
+            String fileHash = DigestFile.getHash(filePath);
+            int chunkNo = DigestFile.getChunkCount(filePath);
+            if (chunkNo < 0) return "File " + filePath + " is too big";
+            for (int currChunk = 0; currChunk < chunkNo; ++currChunk) {
+                if (DigestFile.hasChunk(fileHash, currChunk)) continue;
+                GetChunkMsg msg = new GetChunkMsg(this.protocolVersion, this.id, fileHash, 0);
+                this.MCSock.send(msg);
+            }
+            return "Restored file " + filePath + " with hash " + fileHash + ".";
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RemoteException();
+        }
+        // return "restore";
     }
 
     @Override
@@ -198,12 +194,20 @@ public class Proj1 implements TestInterface {
             return "Deleted file " + filePath + " with hash " + fileHash + ".";
         } catch (IOException e) {
             e.printStackTrace();
+            throw new RemoteException();
         }
-        return "Deletion of " + filePath + " failed.";
+        // return "Deletion of " + filePath + " failed.";
     }
 
     @Override
     public String reclaim(int maxCapacity) throws RemoteException {
+        int capacityDelta = maxCapacity - this.maxDiskSpaceKB;
+        this.maxDiskSpaceKB = maxCapacity;
+        if (capacityDelta >= 0)  // if max capacity is unchanged or increases, we don't need to do anything
+            return "Max disk space set to " + maxCapacity + " KBytes.";
+
+        // TODO delete chunks based on replication degree
+
         return "reclaim";
     }
 

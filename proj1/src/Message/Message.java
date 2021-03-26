@@ -1,9 +1,5 @@
 package Message;
 
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.MulticastSocket;
-
 public interface Message {
     String CRLF = String.valueOf((char) 0xD) + String.valueOf((char) 0xA);
     int versionField = 0;

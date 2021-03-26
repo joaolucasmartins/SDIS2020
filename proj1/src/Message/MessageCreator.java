@@ -45,6 +45,13 @@ public class MessageCreator {
                         header[Message.idField],
                         header[Message.fileField]);
                 break;
+            // Space reclaim Subprotocol
+            case (RemovedMsg.type):
+                res = new RemovedMsg(header[Message.versionField],
+                        header[Message.idField],
+                        header[Message.fileField],
+                        parseInt(header[Message.chunkField]));
+                break;
             default:
                 throw new NoSuchMessage(header[Message.typeField]);
         }
