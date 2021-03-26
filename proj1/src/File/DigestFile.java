@@ -175,15 +175,6 @@ public class DigestFile {
        //     e.printStackTrace();
        // }
        Map<String, Pair<Integer, Map<Integer, Integer>>> map = importMap("fileMap.txt");
-        for (var entry : map.keySet()) {
-           for (var entry2 : map.get(entry).p2.keySet()) {
-               String hash = entry;
-               Integer repDeg = map.get(entry).p1;
-               Integer chunkNo = entry2;
-               Integer perceviedDeg = map.get(entry).p2.get(entry2);
-               System.out.println(hash + " " + repDeg.toString() + " " + chunkNo.toString() + " " + perceviedDeg.toString());
-           }
-       }
         try {
             exportMap(map, "test.txt");
         } catch (IOException e) {
@@ -225,11 +216,11 @@ public class DigestFile {
     public static void exportMap(Map<String, Pair<Integer, Map<Integer, Integer>>> map, String repMapName) throws IOException {
         BufferedWriter wr = new BufferedWriter(new FileWriter(repMapName));
 
-        for (var hash : map.keySet()) {
+        for (String hash : map.keySet()) {
             Pair<Integer, Map<Integer, Integer>> pair = map.get(hash);
             Integer repDeg = pair.p1;
             Map<Integer, Integer> chunkMap = pair.p2;
-            for (var chunkNo : chunkMap.keySet()) {
+            for (Integer chunkNo : chunkMap.keySet()) {
                 Integer perceviedDeg = chunkMap.get(chunkNo);
                 wr.write(hash + " " + repDeg + " " + chunkNo + " " + perceviedDeg);
                 System.out.println(hash + " " + repDeg + " " + chunkNo + " " + perceviedDeg + "?");
