@@ -33,6 +33,7 @@ public class Proj1 implements TestInterface {
 
         this.protocolVersion = args[0];
         this.id = args[1];
+        DigestFile.setFileDir(this.id); // set the file dir name for the rest of the program
         this.accessPoint = args[2];
         // MC
         InetAddress MC = InetAddress.getByName(args[3]);
