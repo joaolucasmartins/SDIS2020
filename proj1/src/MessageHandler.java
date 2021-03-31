@@ -4,9 +4,7 @@ import utils.Pair;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 
 import static Message.MessageCreator.createMessage;
 
@@ -18,6 +16,7 @@ public class MessageHandler {
     private final SockThread MCSock;
     private final SockThread MDBSock;
     private final SockThread MDRSock;
+    private List<Observer> observers;
 
     public MessageHandler(String selfID, String protocolVersion, SockThread MCSock, SockThread MDBSock, SockThread MDRSock) {
         this.selfID = selfID;
@@ -28,7 +27,16 @@ public class MessageHandler {
         this.MCSock.setHandler(this);
         this.MDBSock.setHandler(this);
         this.MDRSock.setHandler(this);
+        this.observers = new ArrayList<>();
         DigestFile.importMap(repMapName);
+    }
+
+    public void addObserver(Observer obs) {
+        this.observers.add(obs);
+    }
+
+    public void rmObserver(Observer obs) {
+        this.observers.remove(obs);
     }
 
     public void saveMap() {
@@ -38,6 +46,7 @@ public class MessageHandler {
             e.printStackTrace(); // TODO handle this?
         }
     }
+
     public void handleMessage(SockThread sock, String received) {
         final String[] receivedFields = received.split(Message.CRLF, 3);
         final String[] header = receivedFields[0].split(" ");
@@ -57,6 +66,11 @@ public class MessageHandler {
             return;
         }
         assert message != null;
+
+        // notify observers
+        for (Observer obs : this.observers) {
+            obs.notify(message.toString());
+        }
 
         try {
             System.out.println("Received: " + Arrays.toString(header));

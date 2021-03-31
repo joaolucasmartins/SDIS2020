@@ -8,10 +8,10 @@ MDR_P=8083
 src_dir=src
 
 all:
-	javac ${src_dir}/*.java ${src_dir}/File/*.java ${src_dir}/Message/*.java
+	javac ${src_dir}/*.java ${src_dir}/File/*.java ${src_dir}/Message/*.java ${src_dir}/utils/*.java
 
 clean:
-	rm -f ${src_dir}/*.class ${src_dir}/File/*.class ${src_dir}/Message/*.class
+	rm -f ${src_dir}/*.class ${src_dir}/File/*.class ${src_dir}/Message/*.class ${src_dir}/utils/*.class
 
 peer1: all
 	java -classpath ${src_dir} Proj1 1.0 firth rmithing:1029 ${MC} ${MC_P} ${MDB} ${MDB_P} ${MDR} ${MDR_P}

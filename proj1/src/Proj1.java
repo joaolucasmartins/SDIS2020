@@ -12,7 +12,7 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
 
-public class Proj1 implements TestInterface {
+public class Proj1 implements TestInterface, Observer {
     private int maxDiskSpaceKB = -1;  // -1 means no limit
     // cmd line arguments
     private final String protocolVersion;
@@ -235,5 +235,10 @@ public class Proj1 implements TestInterface {
     @Override
     public String state() throws RemoteException {
         return this.toString();
+    }
+
+    @Override
+    public void notify(String notification) {
+        System.err.println(notification);
     }
 }
