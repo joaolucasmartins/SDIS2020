@@ -18,6 +18,14 @@ public class StoredMsg implements Message {
         this.chunkNo = chunkNo;
     }
 
+    public String getFileId() {
+        return fileId;
+    }
+
+    public Integer getChunkNo() {
+        return chunkNo;
+    }
+
     @Override
     public byte[] getContent() {
         return header.getBytes();
