@@ -242,8 +242,6 @@ public class Proj1 implements TestInterface, Observer {
 
         long currentCap = capactityToTrim;
 
-        System.err.println(DigestFile.replicationDegMap);
-
         for (var entry : DigestFile.replicationDegMap.entrySet()) {
             String fileId = entry.getKey();
             // int desiredRep = entry.getValue().p1;
@@ -251,9 +249,7 @@ public class Proj1 implements TestInterface, Observer {
             for (var chunkEntry : entry.getValue().p2.entrySet()) {
                 int chunkNo = chunkEntry.getKey();
                 int currRepl = chunkEntry.getValue();
-                System.err.println(chunkNo + " " + currRepl);
                 if (DigestFile.hasChunk(fileId, chunkNo) && (force || currRepl > 1) && currRepl > 0) {
-                    System.err.println(fileId + " " + chunkNo);
                     DigestFile.deleteChunk(fileId, chunkNo);
                     DigestFile.decreaseChunkDeg(fileId, chunkNo);
                     currentCap -= DigestFile.getChunkSize(fileId, chunkNo);
@@ -285,15 +281,11 @@ public class Proj1 implements TestInterface, Observer {
            this.maxDiskSpaceKB = maxCapacity;
         }
 
-<<<<<<< HEAD
         // remove things (trying to keep everything above 0 replication degree)
         long currentCap = DigestFile.getStorageSize() - (this.maxDiskSpaceKB * 1000L);
         System.err.println("Removing: " + currentCap);
         currentCap = trimFiles(currentCap, false);
         if (currentCap > 0) trimFiles(currentCap, true);
-=======
-        // TODO delete chunks based on replication degree
->>>>>>> 465462ff893108d51e75fcf885ee97f22a51ecb6
 
         return "reclaim";
     }
