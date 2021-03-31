@@ -92,7 +92,7 @@ public class Proj1 implements TestInterface, Observer {
         do {
             cmd = scanner.nextLine();
             System.out.println("CMD: " + cmd);
-            if (cmd.equals("putchunk")) {
+            if (cmd.equalsIgnoreCase("putchunk")) {
                 try {
                     DigestFile.divideFile("filename.txt", 3);
                     this.MDBSock.send(
@@ -102,18 +102,24 @@ public class Proj1 implements TestInterface, Observer {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-            } else if (cmd.equals("getchunk")) {
+            } else if (cmd.equalsIgnoreCase("getchunk")) {
                 this.MDBSock.send(
                         new GetChunkMsg("1.0", this.id,
                                 "0fe051a9f8f8de449f1b251d5ad4c78e62d5ff9393b7d9eb3e577e394354f4b4",
                                 0));
 
-            } else if (cmd.equals("removed")) {
+            } else if (cmd.equalsIgnoreCase("removed")) {
                 this.MDBSock.send(
                         new RemovedMsg("1.0", this.id,
                                 "0fe051a9f8f8de449f1b251d5ad4c78e62d5ff9393b7d9eb3e577e394354f4b4",
                                 0));
 
+            } else if (cmd.equalsIgnoreCase("reclaim")) {
+                try {
+                    this.reclaim(0);
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                }
             }
         } while (!cmd.equalsIgnoreCase("EXIT"));
 
@@ -153,6 +159,15 @@ public class Proj1 implements TestInterface, Observer {
         System.out.println("MAIN");
         assert prog != null;
 
+        // trap sigint
+        Proj1 finalProg = prog;
+        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+            public void run() {
+                System.err.println("Exiting gracefully..");
+                finalProg.cleanup();
+            }
+        }));
+
         // setup the access point
         TestInterface stub = null;
         try {
@@ -168,15 +183,6 @@ public class Proj1 implements TestInterface, Observer {
             System.err.println("Failed setting up the access point for use by the testing app.");
             // e.printStackTrace();
         }
-
-        // trap sigint
-        Proj1 finalProg = prog;
-        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-            public void run() {
-                System.err.println("Exiting gracefully..");
-                finalProg.cleanup();
-            }
-        }));
 
         prog.mainLoop();
         System.exit(0);
@@ -231,8 +237,13 @@ public class Proj1 implements TestInterface, Observer {
     }
 
     // force == true => ignore if the the replication degree becomes 0
-    private int trimFiles(int capactityToTrim, boolean force) {
-        int capacityDelta = capactityToTrim;
+    // returns capacity left to trim
+    private long trimFiles(long capactityToTrim, boolean force) {
+        if (capactityToTrim <= 0) return 0;
+
+        long currentCap = capactityToTrim;
+
+        System.err.println(DigestFile.replicationDegMap);
 
         for (var entry : DigestFile.replicationDegMap.entrySet()) {
             String fileId = entry.getKey();
@@ -241,30 +252,45 @@ public class Proj1 implements TestInterface, Observer {
             for (var chunkEntry : entry.getValue().p2.entrySet()) {
                 int chunkNo = chunkEntry.getKey();
                 int currRepl = chunkEntry.getValue();
-                if ((force || currRepl > 1) && currRepl > 0) {
+                System.err.println(chunkNo + " " + currRepl);
+                if (DigestFile.hasChunk(fileId, chunkNo) && (force || currRepl > 1) && currRepl > 0) {
+                    System.err.println(fileId + " " + chunkNo);
+                    DigestFile.deleteChunk(fileId, chunkNo);
+                    DigestFile.decreaseChunkDeg(fileId, chunkNo);
+                    currentCap -= DigestFile.getChunkSize(fileId, chunkNo);
+
                     RemovedMsg removedMsg = new RemovedMsg(this.protocolVersion, this.id, fileId, chunkNo);
                     this.MCSock.send(removedMsg);
-                    DigestFile.decreaseChunkDeg(fileId, chunkNo);
-                    capacityDelta -= DigestFile.getChunkSize(fileId, chunkNo);
                 }
-                if (capacityDelta <= 0) break;
+                if (currentCap <= 0) break;
             }
-            if (capacityDelta <= 0) break;
+            if (currentCap <= 0) break;
         }
 
-        return capacityDelta;
+        return currentCap;
     }
 
     @Override
     public String reclaim(int maxCapacity) throws RemoteException {
-        int capacityDelta = maxCapacity - this.maxDiskSpaceKB;
-        this.maxDiskSpaceKB = maxCapacity;
-        if (capacityDelta >= 0)  // if max capacity is unchanged or increases, we don't need to do anything
-            return "Max disk space set to " + maxCapacity + " KBytes.";
+        if (maxCapacity < 0) {
+            this.maxDiskSpaceKB = -1;
+            // infinite capacity => do nothing
+            return "Max disk space set to infinite KBytes.";
+        } else if (this.maxDiskSpaceKB >= 0) {
+            int capacityDelta = maxCapacity - this.maxDiskSpaceKB;
+            this.maxDiskSpaceKB = maxCapacity;
+            // if max capacity is unchanged or increases, we don't need to do anything
+            if (capacityDelta >= 0)
+                return "Max disk space set to " + maxCapacity + " KBytes.";
+        } else {
+           this.maxDiskSpaceKB = maxCapacity;
+        }
 
         // remove things (trying to keep everything above 0 replication degree)
-        capacityDelta = trimFiles(capacityDelta, false);
-        if (capacityDelta > 0) trimFiles(capacityDelta, true);
+        long currentCap = DigestFile.getStorageSize() - (this.maxDiskSpaceKB * 1000L);
+        System.err.println("Removing: " + currentCap);
+        currentCap = trimFiles(currentCap, false);
+        if (currentCap > 0) trimFiles(currentCap, true);
 
         return "reclaim";
     }

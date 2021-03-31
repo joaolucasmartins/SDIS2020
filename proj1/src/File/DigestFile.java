@@ -81,10 +81,15 @@ public class DigestFile {
         if (fileDir.listFiles() == null) return;
 
         // to delete a directory, the directory must be empty
-        for (File f : fileDir.listFiles()) {
+        for (File f : Objects.requireNonNull(fileDir.listFiles())) {
             f.delete();
         }
         fileDir.delete();
+    }
+
+    public static void deleteChunk(String fileId, Integer chunkNo) {
+        File chunk = new File(FILE_DIR + File.separator + fileId + File.separator + chunkNo.toString());
+        chunk.delete();
     }
 
     public static long getChunkSize(String fileId, Integer chunkNo) {
@@ -94,6 +99,22 @@ public class DigestFile {
         } catch (IOException e) {
             return -1;
         }
+    }
+
+    public static long getStorageSize() {
+        long ret = 0;
+        File fileDir = new File(FILE_DIR);
+        if (fileDir.listFiles() == null) return ret;
+
+        // to delete a directory, the directory must be empty
+        for (File file : Objects.requireNonNull(fileDir.listFiles())) {
+            if (file.isDirectory()) {
+                for (File chunk : Objects.requireNonNull(file.listFiles())) {
+                    ret += chunk.length();
+                }
+            }
+        }
+        return ret;
     }
 
     /* Write a chunk to a file */
