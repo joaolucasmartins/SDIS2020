@@ -192,6 +192,7 @@ public class Proj1 implements TestInterface, Observer {
             String fileHash = DigestFile.getHash(filePath);
             int chunkNo = DigestFile.getChunkCount(filePath);
             if (chunkNo < 0) return "File " + filePath + " is too big";
+            // TODO repetir while replication != 0 (atencao se temos o chunk connosco ou nao (reclaim))
             for (int currChunk = 0; currChunk < chunkNo; ++currChunk) {
                 if (DigestFile.hasChunk(fileHash, currChunk)) continue;
                 GetChunkMsg msg = new GetChunkMsg(this.protocolVersion, this.id, fileHash, 0);
