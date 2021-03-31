@@ -13,6 +13,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 public class DigestFile {
+    // Map<FileId, Pair<DesiredReplication, Map<ChunkNo, Replication>>>
     public static Map<String, Pair<Integer, Map<Integer, Integer>>> replicationDegMap;
     private final static Integer CHUNK_LEN = 256;
     private static final int MAX_CHUNK_SIZE = 64000;

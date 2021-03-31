@@ -12,7 +12,7 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
 
-public class Proj1 implements TestInterface {
+public class Proj1 implements TestInterface, Observer {
     private int maxDiskSpaceKB = -1;  // -1 means no limit
     // cmd line arguments
     private final String protocolVersion;
@@ -35,7 +35,8 @@ public class Proj1 implements TestInterface {
 
         this.protocolVersion = args[0];
         this.id = args[1];
-        DigestFile.setFileDir(this.id); // set the file dir name for the rest of the program
+        // set the file dir name for the rest of the program (create it if missing)
+        DigestFile.setFileDir(this.id);
         this.accessPoint = args[2];
         // MC
         InetAddress MC = InetAddress.getByName(args[3]);
@@ -102,7 +103,7 @@ public class Proj1 implements TestInterface {
                                 0));
 
             }
-    } while (!cmd.equalsIgnoreCase("EXIT"));
+        } while (!cmd.equalsIgnoreCase("EXIT"));
 
         // shush threads
         this.MCSock.interrupt();
@@ -153,8 +154,8 @@ public class Proj1 implements TestInterface {
                 registry = LocateRegistry.getRegistry();
             registry.bind(rmiName, stub);
         } catch (Exception e) {
-            System.err.println("Setting up the access point for testing failed.");
-            e.printStackTrace();
+            System.err.println("Failed setting up the access point for use by the testing app.");
+            // e.printStackTrace();
         }
 
         prog.mainLoop();
@@ -210,6 +211,7 @@ public class Proj1 implements TestInterface {
             String fileHash = DigestFile.getHash(filePath);
             DeleteMsg msg = new DeleteMsg(this.protocolVersion, this.id, fileHash);
             this.MCSock.send(msg);
+            // TODO repetir while replication != 0 (atencao se temos o chunk connosco ou nao (reclaim))
             return "Deleted file " + filePath + " with hash " + fileHash + ".";
         } catch (IOException e) {
             e.printStackTrace();
@@ -233,5 +235,10 @@ public class Proj1 implements TestInterface {
     @Override
     public String state() throws RemoteException {
         return this.toString();
+    }
+
+    @Override
+    public void notify(String notification) {
+        System.err.println(notification);
     }
 }
