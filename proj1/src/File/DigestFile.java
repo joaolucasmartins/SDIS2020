@@ -13,6 +13,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 public class DigestFile {
+    public static Map<String, Pair<Integer, Map<Integer, Integer>>> replicationDegMap;
     private final static Integer CHUNK_LEN = 256;
     private static final int MAX_CHUNK_SIZE = 64000;
     private static final int MAX_CHUNK_NUM = 999999;
@@ -112,20 +113,23 @@ public class DigestFile {
     }
 
     /* divide a file into chunks */
-    public static void divideFile(String filename) throws IOException {
+    public static void divideFile(String filename, Integer replicationDegree) throws IOException {
         String fileId = getHash(filename);
         FileInputStream inputFile = new FileInputStream(FILE_DIR + filename);
         byte[] b = new byte[MAX_CHUNK_SIZE];
         int n, i = 0;
+        Map<Integer, Integer> degMap = new HashMap<>();
 
         if (surpassesMaxChunks(filename))
             throw new MasNaoTeVouAlocar();
 
         while ((n = inputFile.read(b, 0, MAX_CHUNK_SIZE)) >= MAX_CHUNK_SIZE) {
             final String chunkpath = fileId + File.separator + i;
+            degMap.put(i, 1);
             writeChunk(chunkpath, b, n);
             ++i;
         }
+        DigestFile.replicationDegMap.put(fileId, new Pair<>(replicationDegree, degMap));
 
         final String chunkpath = fileId + File.separator + i;
         writeChunk(chunkpath, b, n);
@@ -174,9 +178,9 @@ public class DigestFile {
        // } catch (IOException e) {
        //     e.printStackTrace();
        // }
-       Map<String, Pair<Integer, Map<Integer, Integer>>> map = importMap("fileMap.txt");
+        importMap("fileMap.txt");
         try {
-            exportMap(map, "test.txt");
+            exportMap("test.txt");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -213,7 +217,8 @@ public class DigestFile {
         return fileMap;
     }
 
-    public static void exportMap(Map<String, Pair<Integer, Map<Integer, Integer>>> map, String repMapName) throws IOException {
+    public static void exportMap(String repMapName) throws IOException {
+        Map<String, Pair<Integer, Map<Integer, Integer>>> map = DigestFile.replicationDegMap;
         BufferedWriter wr = new BufferedWriter(new FileWriter(repMapName));
 
         for (String hash : map.keySet()) {

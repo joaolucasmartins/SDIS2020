@@ -18,7 +18,6 @@ public class MessageHandler {
     private final SockThread MCSock;
     private final SockThread MDBSock;
     private final SockThread MDRSock;
-    private Map<String, Pair<Integer, Map<Integer, Integer>>> replicationDegMap;
 
     public MessageHandler(String selfID, String protocolVersion, SockThread MCSock, SockThread MDBSock, SockThread MDRSock) {
         this.selfID = selfID;
@@ -29,12 +28,12 @@ public class MessageHandler {
         this.MCSock.setHandler(this);
         this.MDBSock.setHandler(this);
         this.MDRSock.setHandler(this);
-        this.replicationDegMap = DigestFile.importMap(repMapName);
+        DigestFile.importMap(repMapName);
     }
 
     public void saveMap() {
         try {
-            DigestFile.exportMap(replicationDegMap, repMapName);
+            DigestFile.exportMap(repMapName);
         } catch (IOException e) {
             e.printStackTrace(); // TODO handle this?
         }
@@ -112,6 +111,14 @@ public class MessageHandler {
         } catch (Exception e) {
             e.printStackTrace();
             System.err.println("Failed constructing reply for " + message.getType());
+        }
+    }
+
+    public void verifyRepDegree(String fileId) {
+        Pair<Integer, Map<Integer, Integer>> p = DigestFile.replicationDegMap.get(fileId);
+        Integer desiredRepDeg = p.p1;
+        Map<Integer, Integer> map = p.p2;
+        for (Integer key: map.keySet()) {
         }
     }
 }

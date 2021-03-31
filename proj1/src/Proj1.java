@@ -80,7 +80,7 @@ public class Proj1 implements TestInterface {
             System.out.println("CMD: " + cmd);
             if (cmd.equals("putchunk")) {
                 try {
-                    DigestFile.divideFile("filename.txt");
+                    DigestFile.divideFile("filename.txt", 3);
                     this.MDBSock.send(
                             new PutChunkMsg("1.0", this.id,
                                     DigestFile.getHash("filename.txt"),
@@ -173,11 +173,14 @@ public class Proj1 implements TestInterface {
     /* USED BY THE TestApp (RMI) */
     @Override
     public String backup(String filePath, int replicationDegree) throws RemoteException {
+        String hash;
         try {
-            DigestFile.divideFile(filePath);
+            DigestFile.divideFile(filePath, replicationDegree);
+            hash = DigestFile.getHash(filePath);
         } catch (IOException e) {
             throw new RemoteException("Couldn't divide file " + filePath);
         }
+        this.messageHandler.verifyRepDegree(hash);
         return "asd";
     }
 
