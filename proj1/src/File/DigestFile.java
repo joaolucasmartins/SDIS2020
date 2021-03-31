@@ -87,6 +87,15 @@ public class DigestFile {
         fileDir.delete();
     }
 
+    public static long getChunkSize(String fileId, Integer chunkNo) {
+        Path path = Paths.get(FILE_DIR + File.separator + fileId + File.separator + chunkNo.toString());
+        try {
+            return Files.size(path);
+        } catch (IOException e) {
+            return -1;
+        }
+    }
+
     /* Write a chunk to a file */
     public static void writeChunk(String chunkpath, byte[] b, int n) throws IOException {
         String path = FILE_DIR + File.separator + chunkpath;
@@ -176,15 +185,15 @@ public class DigestFile {
 
     public static void main(String[] args) {
         //try {
-            //String filename = "filename.rar";
-            // String h = getHash(filename);
-            // divideFile(filename);
+        //String filename = "filename.rar";
+        // String h = getHash(filename);
+        // divideFile(filename);
 
-       //     String id = "416ebf6f9e407ba10294e58cbcdc1ef55b0920cd6fd6255fe6767528ddf50aba";
-       //     assembleFile(filename, id);
-       // } catch (IOException e) {
-       //     e.printStackTrace();
-       // }
+        //     String id = "416ebf6f9e407ba10294e58cbcdc1ef55b0920cd6fd6255fe6767528ddf50aba";
+        //     assembleFile(filename, id);
+        // } catch (IOException e) {
+        //     e.printStackTrace();
+        // }
         importMap("fileMap.txt");
         try {
             exportMap("test.txt");

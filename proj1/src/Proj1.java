@@ -220,6 +220,29 @@ public class Proj1 implements TestInterface, Observer {
         // return "Deletion of " + filePath + " failed.";
     }
 
+    private int trimFiles(int capactityToTrim, boolean force) {
+        int capacityDelta = capactityToTrim;
+
+        for (var entry : DigestFile.replicationDegMap.entrySet()) {
+            String fileId = entry.getKey();
+            int desiredRep = entry.getValue().p1;
+
+            for (var chunkEntry : entry.getValue().p2.entrySet()) {
+                int chunkNo = chunkEntry.getKey();
+                int currRepl = chunkEntry.getValue();
+                if (force || currRepl > 1) {
+                    RemovedMsg removedMsg = new RemovedMsg(this.protocolVersion, this.id, fileId, chunkNo);
+                    this.MCSock.send(removedMsg);
+                    capacityDelta -= DigestFile.getChunkSize(fileId, chunkNo);
+                }
+                if (capacityDelta <= 0) break;
+            }
+            if (capacityDelta <= 0) break;
+        }
+
+        return capacityDelta;
+    }
+
     @Override
     public String reclaim(int maxCapacity) throws RemoteException {
         int capacityDelta = maxCapacity - this.maxDiskSpaceKB;
@@ -227,7 +250,9 @@ public class Proj1 implements TestInterface, Observer {
         if (capacityDelta >= 0)  // if max capacity is unchanged or increases, we don't need to do anything
             return "Max disk space set to " + maxCapacity + " KBytes.";
 
-        // TODO delete chunks based on replication degree
+        // remove things (trying to keep everything above 0 replication degree)
+        capacityDelta = trimFiles(capacityDelta, false);
+        if (capacityDelta > 0) trimFiles(capacityDelta, true);
 
         return "reclaim";
     }
