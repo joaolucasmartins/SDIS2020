@@ -22,6 +22,8 @@ public class Proj1 implements TestInterface {
     private final SockThread MCSock;
     private final SockThread MDBSock;
     private final SockThread MDRSock;
+    private final MessageHandler messageHandler;
+
 
     public String getAccessPointName() {
         return this.accessPoint;
@@ -48,6 +50,9 @@ public class Proj1 implements TestInterface {
         Integer MDRPort = Integer.parseInt(args[8]);
         this.MDRSock = this.createSocketThread(MDR, MDRPort);
 
+        this.messageHandler = new MessageHandler(this.id, this.protocolVersion,
+                this.MCSock, this.MDBSock, this.MDRSock);
+
         System.out.println(this);
         System.out.println("Initialized program.");
     }
@@ -58,16 +63,14 @@ public class Proj1 implements TestInterface {
         return new SockThread(socket, addr, port);
     }
 
-    public void closeSockets() {
+    public void cleanup() {
         this.MCSock.close();
         this.MDBSock.close();
         this.MDRSock.close();
+        this.messageHandler.saveMap();
     }
 
     private void mainLoop() {
-        MessageHandler handler = new MessageHandler(this.id, this.protocolVersion,
-                this.MCSock, this.MDBSock, this.MDRSock);
-
         this.MCSock.start();
         this.MDBSock.start();
         this.MDBSock.start();
@@ -155,7 +158,7 @@ public class Proj1 implements TestInterface {
         }
 
         prog.mainLoop();
-        prog.closeSockets();
+        prog.cleanup();
 
         // cleanup the access point
         if (registry != null) {
@@ -171,7 +174,12 @@ public class Proj1 implements TestInterface {
     /* USED BY THE TestApp (RMI) */
     @Override
     public String backup(String filePath, int replicationDegree) throws RemoteException {
-        return "backup";
+        try {
+            DigestFile.divideFile(filePath);
+        } catch (IOException e) {
+            throw new RemoteException("Couldn't divide file " + filePath);
+        }
+        return "asd";
     }
 
     @Override
