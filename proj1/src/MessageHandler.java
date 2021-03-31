@@ -84,6 +84,7 @@ public class MessageHandler {
                         e.printStackTrace();
                         return;
                     }
+                    DigestFile.incrementChunkDeg(backupMsg.getFileId(), backupMsg.getChunkNo());
                     // send STORED reply message
                     response = new StoredMsg(this.protocolVersion, this.selfID,
                             backupMsg.getFileId(), backupMsg.getChunkNo());

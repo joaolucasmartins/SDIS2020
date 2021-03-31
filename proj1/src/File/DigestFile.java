@@ -275,12 +275,16 @@ public class DigestFile {
 
     public static void incrementChunkDeg(String fileId, Integer chunkNo) {
         Map<Integer, Integer> map = DigestFile.replicationDegMap.get(fileId).p2;
-        map.replace(chunkNo, map.get(chunkNo) + 1);
+        if (map.containsKey(chunkNo))
+            map.replace(chunkNo, map.get(chunkNo) + 1);
+        else
+            map.put(chunkNo, 1);
     }
 
     public static void decreaseChunkDeg(String fileId, Integer chunkNo) {
         Map<Integer, Integer> map = DigestFile.replicationDegMap.get(fileId).p2;
-        map.replace(chunkNo, map.get(chunkNo) - 1);
+        if (map.containsKey(chunkNo) && map.get(chunkNo) > 0)
+            map.replace(chunkNo, map.get(chunkNo) - 1);
     }
 
     public static Integer getChunkDeg(String fileId, Integer chunkNo) {
