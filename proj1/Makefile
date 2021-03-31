@@ -20,9 +20,9 @@ peer2: all
 	java -classpath ${src_dir} Proj1 1.0 secondrth rmithing2:1030 ${MC} ${MC_P} ${MDB} ${MDB_P} ${MDR} ${MDR_P}
 
 test_backup: all
-	java ${src_dir}/TestApp rmithing:1029 BACKUP filename.txt 3
+	java -classpath ${src_dir} TestApp rmithing:1029 BACKUP filename.txt 3
 
 test_del: all
-	java ${src_dir}/TestApp rmithing:1029 DELETE filename.txt
+	java -classpath ${src_dir} TestApp rmithing:1029 DELETE filename.txt
 
 .PHONY: all clean peer1 peer2 test

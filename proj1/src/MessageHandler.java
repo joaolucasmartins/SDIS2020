@@ -9,7 +9,6 @@ import java.util.*;
 import static Message.MessageCreator.createMessage;
 
 public class MessageHandler {
-    private final String repMapName = "repMap.txt";
     public final int maxBackofMs = 401;
     private final String selfID;
     private final String protocolVersion;
@@ -28,7 +27,7 @@ public class MessageHandler {
         this.MDBSock.setHandler(this);
         this.MDRSock.setHandler(this);
         this.observers = new ArrayList<>();
-        DigestFile.importMap(repMapName);
+        DigestFile.importMap();
     }
 
     public void addObserver(Observer obs) {
@@ -41,7 +40,7 @@ public class MessageHandler {
 
     public void saveMap() {
         try {
-            DigestFile.exportMap(repMapName);
+            DigestFile.exportMap();
         } catch (IOException e) {
             e.printStackTrace(); // TODO handle this?
         }

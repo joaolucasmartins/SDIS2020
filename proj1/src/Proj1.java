@@ -24,8 +24,6 @@ public class Proj1 implements TestInterface, Observer {
     private final SockThread MDRSock;
     private final MessageHandler messageHandler;
 
-    public static Registry registry = null;
-    public static String rmiName = null;
 
     public String getAccessPointName() {
         return this.accessPoint;
@@ -71,16 +69,6 @@ public class Proj1 implements TestInterface, Observer {
         this.MDBSock.close();
         this.MDRSock.close();
         this.messageHandler.saveMap();
-
-        // cleanup the access point
-        if (Proj1.registry != null) {
-            try {
-                Proj1.registry.unbind(Proj1.rmiName);
-                UnicastRemoteObject.unexportObject(this, false);
-            } catch (Exception e) {
-                System.err.println("Failed to unbind from rmi registry.");
-            }
-        }
     }
 
     private void mainLoop() {
@@ -156,7 +144,6 @@ public class Proj1 implements TestInterface, Observer {
             e.printStackTrace();
             usage();
         }
-        System.out.println("MAIN");
         assert prog != null;
 
         // trap sigint
@@ -170,22 +157,34 @@ public class Proj1 implements TestInterface, Observer {
 
         // setup the access point
         TestInterface stub = null;
+        Registry registry = null;
+        String rmiName = null;
         try {
             stub = (TestInterface) UnicastRemoteObject.exportObject(prog, 0);
             String[] rmiinfoSplit = prog.getAccessPointName().split(":");
-            Proj1.rmiName = rmiinfoSplit[0];
+            rmiName = rmiinfoSplit[0];
             if (rmiinfoSplit.length > 1)
-                Proj1.registry = LocateRegistry.getRegistry("localhost", Integer.parseInt(rmiinfoSplit[1]));
+                registry = LocateRegistry.getRegistry("localhost", Integer.parseInt(rmiinfoSplit[1]));
             else
-                Proj1.registry = LocateRegistry.getRegistry();
-            Proj1.registry.bind(Proj1.rmiName, stub);
+                registry = LocateRegistry.getRegistry();
+            registry.bind(rmiName, stub);
         } catch (Exception e) {
             System.err.println("Failed setting up the access point for use by the testing app.");
             // e.printStackTrace();
         }
 
         prog.mainLoop();
-        System.exit(0);
+        prog.cleanup();
+
+        // cleanup the access point
+        if (registry != null) {
+            try {
+                registry.unbind(rmiName);
+                UnicastRemoteObject.unexportObject(prog, false);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     /* USED BY THE TestApp (RMI) */
@@ -286,11 +285,15 @@ public class Proj1 implements TestInterface, Observer {
            this.maxDiskSpaceKB = maxCapacity;
         }
 
+<<<<<<< HEAD
         // remove things (trying to keep everything above 0 replication degree)
         long currentCap = DigestFile.getStorageSize() - (this.maxDiskSpaceKB * 1000L);
         System.err.println("Removing: " + currentCap);
         currentCap = trimFiles(currentCap, false);
         if (currentCap > 0) trimFiles(currentCap, true);
+=======
+        // TODO delete chunks based on replication degree
+>>>>>>> 465462ff893108d51e75fcf885ee97f22a51ecb6
 
         return "reclaim";
     }
