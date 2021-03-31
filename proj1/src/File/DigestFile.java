@@ -204,10 +204,12 @@ public class DigestFile {
 
     public static Map<String, Pair<Integer, Map<Integer, Integer>>> importMap(String repMapName) {
         Scanner scanner;
+        System.err.println("HERE");
         try {
             scanner = new Scanner(new File(repMapName));
         } catch (FileNotFoundException e) {
-            return new HashMap<>();
+            DigestFile.replicationDegMap = new HashMap<>();
+            return DigestFile.replicationDegMap;
         }
         String line, previousHash = "";
         Integer fileRepDegree = -1;
@@ -231,6 +233,7 @@ public class DigestFile {
         }
         fileMap.put(previousHash, new Pair<>(fileRepDegree, chunkMap));
         DigestFile.replicationDegMap = fileMap;
+        System.out.println("NIGGER");
         return DigestFile.replicationDegMap;
     }
 
