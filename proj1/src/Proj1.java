@@ -138,6 +138,7 @@ public class Proj1 implements TestInterface, Observer {
             e.printStackTrace();
             usage();
         }
+        System.out.println("MAIN");
         assert prog != null;
 
         // setup the access point
