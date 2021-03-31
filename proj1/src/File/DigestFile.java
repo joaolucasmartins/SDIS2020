@@ -13,12 +13,12 @@ import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 public class DigestFile {
-    // Map<FileId, Pair<DesiredReplication, Map<ChunkNo, Replication>>>
     public static Map<String, Pair<Integer, Map<Integer, Integer>>> replicationDegMap;
     private final static Integer CHUNK_LEN = 256;
     private static final int MAX_CHUNK_SIZE = 64000;
     private static final int MAX_CHUNK_NUM = 999999;
     private static String FILE_DIR = "." + File.separator + "files" + File.separator;
+    private static final String REPMAPNAME = "repMap.txt";
 
     public static void setFileDir(String id) {
         FILE_DIR = "." + File.separator + ("files-" + id) + File.separator;
@@ -139,6 +139,7 @@ public class DigestFile {
         DigestFile.replicationDegMap.put(fileId, new Pair<>(replicationDegree, degMap));
 
         final String chunkpath = fileId + File.separator + i;
+        degMap.put(i, 1);
         writeChunk(chunkpath, b, n);
     }
 
@@ -185,22 +186,21 @@ public class DigestFile {
        // } catch (IOException e) {
        //     e.printStackTrace();
        // }
-        importMap("fileMap.txt");
+        importMap();
         try {
-            exportMap("test.txt");
+            exportMap();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public static Map<String, Pair<Integer, Map<Integer, Integer>>> importMap(String repMapName) {
+    public static void importMap() {
         Scanner scanner;
-        System.err.println("HERE");
         try {
-            scanner = new Scanner(new File(repMapName));
+            scanner = new Scanner(new File(FILE_DIR + File.separator + REPMAPNAME));
         } catch (FileNotFoundException e) {
             DigestFile.replicationDegMap = new HashMap<>();
-            return DigestFile.replicationDegMap;
+            return;
         }
         String line, previousHash = "";
         Integer fileRepDegree = -1;
@@ -224,13 +224,11 @@ public class DigestFile {
         }
         fileMap.put(previousHash, new Pair<>(fileRepDegree, chunkMap));
         DigestFile.replicationDegMap = fileMap;
-        System.out.println("NIGGER");
-        return DigestFile.replicationDegMap;
     }
 
-    public static void exportMap(String repMapName) throws IOException {
+    public static void exportMap() throws IOException {
         Map<String, Pair<Integer, Map<Integer, Integer>>> map = DigestFile.replicationDegMap;
-        BufferedWriter wr = new BufferedWriter(new FileWriter(repMapName));
+        BufferedWriter wr = new BufferedWriter(new FileWriter(FILE_DIR + File.separator + REPMAPNAME));
 
         for (String hash : map.keySet()) {
             Pair<Integer, Map<Integer, Integer>> pair = map.get(hash);
@@ -239,7 +237,6 @@ public class DigestFile {
             for (Integer chunkNo : chunkMap.keySet()) {
                 Integer perceviedDeg = chunkMap.get(chunkNo);
                 wr.write(hash + " " + repDeg + " " + chunkNo + " " + perceviedDeg);
-                System.out.println(hash + " " + repDeg + " " + chunkNo + " " + perceviedDeg + "?");
                 wr.newLine();
             }
         }
