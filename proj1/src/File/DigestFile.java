@@ -230,7 +230,8 @@ public class DigestFile {
             previousHash = hash;
         }
         fileMap.put(previousHash, new Pair<>(fileRepDegree, chunkMap));
-        return fileMap;
+        DigestFile.replicationDegMap = fileMap;
+        return DigestFile.replicationDegMap;
     }
 
     public static void exportMap(String repMapName) throws IOException {
@@ -249,5 +250,20 @@ public class DigestFile {
             }
         }
         wr.close();
+    }
+
+    public static void incrementChunkDeg(String fileId, Integer chunkNo) {
+        Map<Integer, Integer> map = DigestFile.replicationDegMap.get(fileId).p2;
+        map.replace(chunkNo, map.get(chunkNo) + 1);
+    }
+
+    public static void decreaseChunkDeg(String fileId, Integer chunkNo) {
+        Map<Integer, Integer> map = DigestFile.replicationDegMap.get(fileId).p2;
+        map.replace(chunkNo, map.get(chunkNo) - 1);
+    }
+
+    public static Integer getChunkDeg(String fileId, Integer chunkNo) {
+        Map<Integer, Integer> map = DigestFile.replicationDegMap.get(fileId).p2;
+        return map.get(chunkNo);
     }
 }

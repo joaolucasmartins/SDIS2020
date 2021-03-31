@@ -92,6 +92,8 @@ public class MessageHandler {
                     this.MDBSock.send(response, random.nextInt(maxBackofMs));
                     break;
                 case StoredMsg.type:
+                    StoredMsg storedMsg = (StoredMsg) message;
+                    DigestFile.incrementChunkDeg(storedMsg.getFileId(), storedMsg.getChunkNo());
                     break;
                 case DeleteMsg.type:
                     // TODO delete file here
@@ -133,6 +135,12 @@ public class MessageHandler {
         Integer desiredRepDeg = p.p1;
         Map<Integer, Integer> map = p.p2;
         for (Integer key: map.keySet()) {
+            if (map.get(key) < desiredRepDeg)
+                this.sendPutChunk(fileId, key);
         }
+    }
+
+    private void sendPutChunk(String fileId, Integer chunkNo) {
+        
     }
 }
