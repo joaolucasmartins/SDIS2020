@@ -17,7 +17,13 @@ public class DigestFile {
     private final static Integer CHUNK_LEN = 256;
     private static final int MAX_CHUNK_SIZE = 64000;
     private static final int MAX_CHUNK_NUM = 999999;
-    private final static String FILE_DIR = "." + File.separator + "files" + File.separator;
+    private static String FILE_DIR = "." + File.separator + "files" + File.separator;
+
+    public static void setFileDir(String id) {
+        FILE_DIR = "." + File.separator + ("files-" + id) + File.separator;
+        File f = new File(FILE_DIR);
+        f.mkdirs();
+    }
 
     /* file metadata used to get a hash */
     private static String getBitString(String filename) throws IOException {
