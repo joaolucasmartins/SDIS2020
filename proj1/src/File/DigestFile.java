@@ -87,6 +87,15 @@ public class DigestFile {
         fileDir.delete();
     }
 
+    public static long getChunkSize(String fileId, Integer chunkNo) {
+        Path path = Paths.get(FILE_DIR + File.separator + fileId + File.separator + chunkNo.toString());
+        try {
+            return Files.size(path);
+        } catch (IOException e) {
+            return -1;
+        }
+    }
+
     /* Write a chunk to a file */
     public static void writeChunk(String chunkpath, byte[] b, int n) throws IOException {
         String path = FILE_DIR + File.separator + chunkpath;

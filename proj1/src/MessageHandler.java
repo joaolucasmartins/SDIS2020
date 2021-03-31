@@ -130,7 +130,6 @@ public class MessageHandler {
     }
 
     public void verifyRepDegree(String fileId) {
-        System.out.println("HERE 1");
         Pair<Integer, Map<Integer, Integer>> p = DigestFile.replicationDegMap.get(fileId);
         Integer desiredRepDeg = p.p1;
         Map<Integer, Integer> map = p.p2;
