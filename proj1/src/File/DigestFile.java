@@ -273,8 +273,18 @@ public class DigestFile {
         wr.close();
     }
 
+    public static boolean containsFileKey(String fileId) {
+        return DigestFile.replicationDegMap.containsKey(fileId);
+    }
+
+    public static void addFileEntry(String fileId, Integer repDegree) {
+        DigestFile.replicationDegMap.put(fileId, new Pair<>(repDegree, new HashMap<>()));
+    }
+
     public static void incrementChunkDeg(String fileId, Integer chunkNo) {
         Map<Integer, Integer> map = DigestFile.replicationDegMap.get(fileId).p2;
+        if (!DigestFile.containsFileKey(fileId))
+            DigestFile.addFileEntry(fileId, chunkNo);
         if (map.containsKey(chunkNo))
             map.replace(chunkNo, map.get(chunkNo) + 1);
         else
@@ -282,6 +292,7 @@ public class DigestFile {
     }
 
     public static void decreaseChunkDeg(String fileId, Integer chunkNo) {
+        if (!DigestFile.containsFileKey(fileId)) return;
         Map<Integer, Integer> map = DigestFile.replicationDegMap.get(fileId).p2;
         if (map.containsKey(chunkNo) && map.get(chunkNo) > 0)
             map.replace(chunkNo, map.get(chunkNo) - 1);

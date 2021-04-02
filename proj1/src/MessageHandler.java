@@ -116,7 +116,7 @@ public class MessageHandler {
                 case RemovedMsg.type:
                     RemovedMsg removedMsg = (RemovedMsg) message;
 
-                    // TODO update chunk local copy count
+                    DigestFile.decreaseChunkDeg(removedMsg.getFileId(), removedMsg.getChunkNo());
                     // TODO initiate the chunk backup subprotocol after random delay
                     // TODO if during this time, we get a PUTCHUNK for this chunk => back off
                     break;

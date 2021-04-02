@@ -11,6 +11,7 @@ public class PutChunkMsg implements Message {
     private final String header;
     private final String fileId;
     private final Integer chunkNo;
+    private final Integer replication;
     private byte[] chunk;
 
     public PutChunkMsg(String version, String id, String fileId, int chunkNo, int replication, byte[] chunk) {
@@ -24,6 +25,7 @@ public class PutChunkMsg implements Message {
         this.fileId = fileId;
         this.chunkNo = chunkNo;
         this.chunk = chunk;
+        this.replication = replication;
     }
     public PutChunkMsg(String version, String id, String fileId, int chunkNo, int replication, String filename) {
         this(version, id, fileId, chunkNo, replication, new byte[0]);
@@ -44,6 +46,10 @@ public class PutChunkMsg implements Message {
 
     public byte[] getChunk() {
         return this.chunk;
+    }
+
+    public Integer getReplication() {
+        return replication;
     }
 
     @Override
