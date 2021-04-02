@@ -1,3 +1,5 @@
+import message.Message;
+
 public interface Observer {
-    void notify(String notification);
+    void notify(Message notification);
 }

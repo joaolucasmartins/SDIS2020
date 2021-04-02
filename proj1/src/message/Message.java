@@ -1,4 +1,4 @@
-package Message;
+package message;
 
 public interface Message {
     String CRLF = String.valueOf((char) 0xD) + String.valueOf((char) 0xA);
@@ -12,6 +12,8 @@ public interface Message {
     byte[] getContent();
 
     String getType();
+
+    String getSenderId();
 
     int getHeaderLen();
 }

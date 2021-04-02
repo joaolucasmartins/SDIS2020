@@ -1,6 +1,6 @@
-package File;
+package file;
 
-import Message.Message;
+import message.Message;
 import utils.Pair;
 
 import java.io.*;
@@ -283,8 +283,6 @@ public class DigestFile {
 
     public static void incrementChunkDeg(String fileId, Integer chunkNo) {
         Map<Integer, Integer> map = DigestFile.replicationDegMap.get(fileId).p2;
-        if (!DigestFile.containsFileKey(fileId))
-            DigestFile.addFileEntry(fileId, chunkNo);
         if (map.containsKey(chunkNo))
             map.replace(chunkNo, map.get(chunkNo) + 1);
         else
@@ -301,5 +299,17 @@ public class DigestFile {
     public static Integer getChunkDeg(String fileId, Integer chunkNo) {
         Map<Integer, Integer> map = DigestFile.replicationDegMap.get(fileId).p2;
         return map.get(chunkNo);
+    }
+
+    public static List<Integer> getChunksBellowRep(String fileId) {
+        List<Integer> res = new ArrayList<>();
+        Pair<Integer, Map<Integer, Integer>> p = DigestFile.replicationDegMap.get(fileId);
+        Integer desiredRepDeg = p.p1;
+        Map<Integer, Integer> map = p.p2;
+        for (Integer key: map.keySet()) {
+            if (map.get(key) < desiredRepDeg)
+                res.add(key);
+        }
+        return res;
     }
 }

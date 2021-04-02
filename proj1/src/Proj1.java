@@ -1,8 +1,8 @@
-import File.DigestFile;
-import Message.PutChunkMsg;
-import Message.GetChunkMsg;
-import Message.RemovedMsg;
-import Message.DeleteMsg;
+import file.DigestFile;
+import message.PutChunkMsg;
+import message.GetChunkMsg;
+import message.RemovedMsg;
+import message.DeleteMsg;
 
 import java.io.IOException;
 import java.net.*;
@@ -12,8 +12,8 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
 
-public class Proj1 implements TestInterface, Observer {
-    private int maxDiskSpaceKB = -1;  // -1 means no limit
+public class Proj1 implements TestInterface {
+    public static int maxDiskSpaceKB = -1;  // -1 means no limit
     // cmd line arguments
     private final String protocolVersion;
     private final String id;
@@ -83,10 +83,17 @@ public class Proj1 implements TestInterface, Observer {
             if (cmd.equalsIgnoreCase("putchunk")) {
                 try {
                     DigestFile.divideFile("filename.txt", 3);
-                    this.MDBSock.send(
-                            new PutChunkMsg("1.0", this.id,
-                                    DigestFile.getHash("filename.txt"),
-                                    0, 9, "filename.txt"));
+                    PutChunkMsg putChunkMsg = new PutChunkMsg("1.0", this.id,
+                            DigestFile.getHash("filename.txt"), 0, 9,
+                            "filename.txt");
+                    PutChunkSender putChunkSender = new PutChunkSender(this.MDBSock, putChunkMsg, this.messageHandler);
+                    Thread t = new Thread(putChunkSender);
+                    t.start();
+                    try {
+                        t.join();
+                    } catch (InterruptedException e) {
+                        System.out.println("!!!!:warning:!!!!");
+                    }
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -148,15 +155,13 @@ public class Proj1 implements TestInterface, Observer {
 
         // trap sigint
         Proj1 finalProg = prog;
-        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-            public void run() {
-                System.err.println("Exiting gracefully..");
-                finalProg.cleanup();
-            }
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.err.println("Exiting gracefully..");
+            finalProg.cleanup();
         }));
 
         // setup the access point
-        TestInterface stub = null;
+        TestInterface stub;
         Registry registry = null;
         String rmiName = null;
         try {
@@ -192,12 +197,15 @@ public class Proj1 implements TestInterface, Observer {
     public String backup(String filePath, int replicationDegree) throws RemoteException {
         String hash;
         try {
+            // TODO NAO ESCREVE CHUNKS, APENAS LER
             DigestFile.divideFile(filePath, replicationDegree);
             hash = DigestFile.getHash(filePath);
         } catch (IOException e) {
             throw new RemoteException("Couldn't divide file " + filePath);
         }
-        this.messageHandler.verifyRepDegree(hash);
+        for (Integer chunkNo: DigestFile.getChunksBellowRep(hash)) {
+
+        }
         return "asd";
     }
 
@@ -206,7 +214,7 @@ public class Proj1 implements TestInterface, Observer {
         try {
             String fileHash = DigestFile.getHash(filePath);
             int chunkNo = DigestFile.getChunkCount(filePath);
-            if (chunkNo < 0) return "File " + filePath + " is too big";
+            if (chunkNo < 0) return "file " + filePath + " is too big";
             // TODO repetir while replication != 0 (atencao se temos o chunk connosco ou nao (reclaim))
             for (int currChunk = 0; currChunk < chunkNo; ++currChunk) {
                 if (DigestFile.hasChunk(fileHash, currChunk)) continue;
@@ -267,23 +275,23 @@ public class Proj1 implements TestInterface, Observer {
     }
 
     @Override
-    public String reclaim(int maxCapacity) throws RemoteException {
+    public String reclaim(int maxCapacity) throws RemoteException { // TODO Adicionar isto aos ENHANCE
         if (maxCapacity < 0) {
-            this.maxDiskSpaceKB = -1;
+            maxDiskSpaceKB = -1;
             // infinite capacity => do nothing
             return "Max disk space set to infinite KBytes.";
-        } else if (this.maxDiskSpaceKB >= 0) {
-            int capacityDelta = maxCapacity - this.maxDiskSpaceKB;
-            this.maxDiskSpaceKB = maxCapacity;
+        } else if (maxDiskSpaceKB >= 0) {
+            int capacityDelta = maxCapacity - maxDiskSpaceKB;
+            maxDiskSpaceKB = maxCapacity;
             // if max capacity is unchanged or increases, we don't need to do anything
             if (capacityDelta >= 0)
                 return "Max disk space set to " + maxCapacity + " KBytes.";
         } else {
-           this.maxDiskSpaceKB = maxCapacity;
+           maxDiskSpaceKB = maxCapacity;
         }
 
         // remove things (trying to keep everything above 0 replication degree)
-        long currentCap = DigestFile.getStorageSize() - (this.maxDiskSpaceKB * 1000L);
+        long currentCap = DigestFile.getStorageSize() - (maxDiskSpaceKB * 1000L);
         System.err.println("Removing: " + currentCap);
         currentCap = trimFiles(currentCap, false);
         if (currentCap > 0) trimFiles(currentCap, true);
@@ -294,10 +302,5 @@ public class Proj1 implements TestInterface, Observer {
     @Override
     public String state() throws RemoteException {
         return this.toString();
-    }
-
-    @Override
-    public void notify(String notification) {
-        System.err.println(notification);
     }
 }

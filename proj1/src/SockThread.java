@@ -1,8 +1,7 @@
-import Message.Message;
+import message.Message;
 
 import java.io.IOException;
 import java.net.*;
-import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class SockThread implements Runnable {

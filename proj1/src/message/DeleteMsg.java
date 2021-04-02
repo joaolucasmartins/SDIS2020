@@ -1,33 +1,28 @@
-package Message;
+package message;
 
-public class RemovedMsg implements Message {
-    public static final String type = "REMOVED";
+public class DeleteMsg implements Message {
+    public static final String type = "DELETE";
     private final String header;
+    private final String senderId;
     private final String fileId;
-    private final Integer chunkNo;
 
-    public RemovedMsg(String version, String id, String fileId, int chunkNo) {
+    public DeleteMsg(String version, String id, String fileId) {
+        this.fileId = fileId;
         this.header = version + " " +
                 type + " " +
                 id + " " +
-                fileId + " " +
-                chunkNo + " " +
+                this.fileId + " " +
                 Message.CRLF + Message.CRLF;
-        this.fileId = fileId;
-        this.chunkNo = chunkNo;
+        this.senderId = id;
     }
 
     public String getFileId() {
         return fileId;
     }
 
-    public Integer getChunkNo() {
-        return chunkNo;
-    }
-
     @Override
     public byte[] getContent() {
-        return header.getBytes();
+        return this.header.getBytes();
     }
 
     @Override
@@ -37,9 +32,13 @@ public class RemovedMsg implements Message {
 
     @Override
     public int getHeaderLen() {
-        return 5;
+        return 4;
     }
 
+    @Override
+    public String getSenderId() {
+        return senderId;
+    }
     @Override
     public String toString() {
         return type + " " + this.fileId;

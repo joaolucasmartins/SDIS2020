@@ -1,12 +1,12 @@
-import File.DigestFile;
-import Message.*;
+import file.DigestFile;
+import message.*;
 import utils.Pair;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
-import static Message.MessageCreator.createMessage;
+import static message.MessageCreator.createMessage;
 
 public class MessageHandler {
     public final int maxBackofMs = 401;
@@ -68,7 +68,7 @@ public class MessageHandler {
 
         // notify observers
         for (Observer obs : this.observers) {
-            obs.notify(message.toString());
+            obs.notify(message);
         }
 
         try {
@@ -77,6 +77,11 @@ public class MessageHandler {
             switch (message.getType()) {
                 case PutChunkMsg.type:
                     PutChunkMsg backupMsg = (PutChunkMsg) message;
+                    // If we surpass storage space
+                    if (DigestFile.getStorageSize() * 1000 + backupMsg.getChunk().length < Proj1.maxDiskSpaceKB * 1000L)
+                        break;
+                    if (DigestFile.hasChunk(backupMsg.getFileId(), backupMsg.getChunkNo()))
+                        break;
                     try {
                         DigestFile.writeChunk(backupMsg.getFileId() + File.separator + backupMsg.getChunkNo(),
                                 backupMsg.getChunk(), backupMsg.getChunk().length);
@@ -84,6 +89,8 @@ public class MessageHandler {
                         e.printStackTrace();
                         return;
                     }
+                    if (!DigestFile.containsFileKey(backupMsg.getFileId()))
+                        DigestFile.addFileEntry(backupMsg.getFileId(), backupMsg.getReplication());
                     DigestFile.incrementChunkDeg(backupMsg.getFileId(), backupMsg.getChunkNo());
                     // send STORED reply message
                     response = new StoredMsg(this.protocolVersion, this.selfID,
@@ -127,16 +134,6 @@ public class MessageHandler {
         } catch (Exception e) {
             e.printStackTrace();
             System.err.println("Failed constructing reply for " + message.getType());
-        }
-    }
-
-    public void verifyRepDegree(String fileId) {
-        Pair<Integer, Map<Integer, Integer>> p = DigestFile.replicationDegMap.get(fileId);
-        Integer desiredRepDeg = p.p1;
-        Map<Integer, Integer> map = p.p2;
-        for (Integer key: map.keySet()) {
-            if (map.get(key) < desiredRepDeg)
-                this.sendPutChunk(fileId, key);
         }
     }
 

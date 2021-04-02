@@ -1,6 +1,6 @@
-package Message;
+package message;
 
-import File.DigestFile;
+import file.DigestFile;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -9,6 +9,7 @@ public class PutChunkMsg implements Message {
     public static final String type = "PUTCHUNK";
     public static final int chunkIndex = 6;
     private final String header;
+    private final String senderId;
     private final String fileId;
     private final Integer chunkNo;
     private final Integer replication;
@@ -24,6 +25,7 @@ public class PutChunkMsg implements Message {
                 Message.CRLF + Message.CRLF;
         this.fileId = fileId;
         this.chunkNo = chunkNo;
+        this.senderId = id;
         this.chunk = chunk;
         this.replication = replication;
     }
@@ -67,6 +69,11 @@ public class PutChunkMsg implements Message {
     @Override
     public int getHeaderLen() {
         return 6;
+    }
+
+    @Override
+    public String getSenderId() {
+        return senderId;
     }
 
     @Override

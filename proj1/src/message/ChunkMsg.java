@@ -1,6 +1,6 @@
-package Message;
+package message;
 
-import File.DigestFile;
+import file.DigestFile;
 
 import java.io.File;
 import java.io.IOException;
@@ -10,6 +10,7 @@ public class ChunkMsg implements Message {
     public static final String type = "CHUNK";
     public static final int CRLFField = 5;
     private final String header;
+    private final String senderId;
     private final String fileId;
     private final Integer chunkNo;
     private byte[] chunk;
@@ -24,6 +25,7 @@ public class ChunkMsg implements Message {
         this.fileId = fileId;
         this.chunkNo = chunkNo;
         this.chunk = chunk;
+        this.senderId = id;
     }
 
     public ChunkMsg(String version, String id, String fileId, int chunkNo, String filename) {
@@ -69,5 +71,10 @@ public class ChunkMsg implements Message {
     @Override
     public int getHeaderLen() {
         return 5;
+    }
+
+    @Override
+    public String getSenderId() {
+        return senderId;
     }
 }

@@ -1,12 +1,13 @@
-package Message;
+package message;
 
-public class GetChunkMsg implements Message {
-    public static final String type = "GETCHUNK";
+public class RemovedMsg implements Message {
+    public static final String type = "REMOVED";
     private final String header;
+    private final String senderId;
     private final String fileId;
     private final Integer chunkNo;
 
-    public GetChunkMsg(String version, String id, String fileId, int chunkNo) {
+    public RemovedMsg(String version, String id, String fileId, int chunkNo) {
         this.header = version + " " +
                 type + " " +
                 id + " " +
@@ -14,6 +15,7 @@ public class GetChunkMsg implements Message {
                 chunkNo + " " +
                 Message.CRLF + Message.CRLF;
         this.fileId = fileId;
+        this.senderId = id;
         this.chunkNo = chunkNo;
     }
 
@@ -38,5 +40,15 @@ public class GetChunkMsg implements Message {
     @Override
     public int getHeaderLen() {
         return 5;
+    }
+
+    @Override
+    public String getSenderId() {
+        return senderId;
+    }
+
+    @Override
+    public String toString() {
+        return type + " " + this.fileId;
     }
 }
