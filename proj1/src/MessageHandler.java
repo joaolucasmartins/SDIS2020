@@ -93,18 +93,17 @@ public class MessageHandler {
                         e.printStackTrace();
                         return;
                     }
-                    if (!DigestFile.containsFileKey(backupMsg.getFileId()))
+                    if (!DigestFile.replicationDegMap.containsKey(backupMsg.getFileId()))
                         DigestFile.addFileEntry(backupMsg.getFileId(), backupMsg.getReplication());
                     DigestFile.incrementChunkDeg(backupMsg.getFileId(), backupMsg.getChunkNo());
                     // send STORED reply message
                     response = new StoredMsg(this.protocolVersion, this.selfID,
                             backupMsg.getFileId(), backupMsg.getChunkNo());
-                    Random random = new Random();
-                    this.MDBSock.send(response, random.nextInt(maxBackofMs));
 
+                    StoredSender storedSender = new StoredSender(this.MCSock, (StoredMsg) response, this);
+                    storedSender.run();
                     // unsub MDB when storage is full
                     if (DigestFile.getStorageSize() == Proj1.maxDiskSpaceB) this.MDBSock.leave();
-
                     break;
                 case StoredMsg.type:
                     StoredMsg storedMsg = (StoredMsg) message;
@@ -121,14 +120,15 @@ public class MessageHandler {
                 case GetChunkMsg.type:
                     GetChunkMsg getChunkMsg = (GetChunkMsg) message;
                     if (DigestFile.hasChunk(getChunkMsg.getFileId(), getChunkMsg.getChunkNo())) {
-                        // TODO Thread here
                         response = new ChunkMsg(this.protocolVersion, this.selfID,
                                 getChunkMsg.getFileId(), getChunkMsg.getChunkNo());
-                        this.MDRSock.send(response, new Random().nextInt(401));
+                        ChunkSender chunkSender = new ChunkSender(this.MDRSock, (ChunkMsg) response, this);
+                        chunkSender.run();
                     }
                     break;
                 case ChunkMsg.type:
                     ChunkMsg chunkMsg = (ChunkMsg) message;
+                    // TODO Check if we are expecting this chunk msg
                     DigestFile.writeChunk(chunkMsg, chunkMsg.getFileId(), chunkMsg.getChunkNo());
                     break;
                 case RemovedMsg.type:
