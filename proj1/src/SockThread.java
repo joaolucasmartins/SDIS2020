@@ -8,6 +8,7 @@ public class SockThread implements Runnable {
     private Thread worker;
     private final AtomicBoolean running = new AtomicBoolean(false);
 
+    private boolean inGroup;
     private final MulticastSocket sock;
     private final InetAddress group;
     private final Integer port;
@@ -17,19 +18,26 @@ public class SockThread implements Runnable {
         this.sock = sock;
         this.group = group;
         this.port = port;
+
+        this.inGroup = false;
+        this.join();
     }
 
     public void join() {
+        if (inGroup) return;
         try {
             this.sock.joinGroup(this.group);
+            this.inGroup = true;
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
     public void leave() {
+        if (!inGroup) return;
         try {
             this.sock.leaveGroup(this.group);
+            this.inGroup = false;
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -40,6 +48,7 @@ public class SockThread implements Runnable {
     }
 
     public void close() {
+        this.leave();
         this.sock.close();
     }
 

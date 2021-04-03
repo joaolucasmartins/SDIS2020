@@ -60,7 +60,6 @@ public class Proj1 implements TestInterface {
 
     private SockThread createSocketThread(InetAddress addr, Integer port) throws IOException {
         MulticastSocket socket = new MulticastSocket(port);
-        socket.joinGroup(addr);
         return new SockThread(socket, addr, port);
     }
 
@@ -297,6 +296,9 @@ public class Proj1 implements TestInterface {
         System.err.println("Removing: " + currentCap);
         currentCap = trimFiles(currentCap, false);
         if (currentCap > 0) trimFiles(currentCap, true);
+
+        if (DigestFile.getStorageSize() == Proj1.maxDiskSpaceB) this.MDBSock.leave();
+        else this.MDBSock.join();
 
         return "reclaim";
     }
