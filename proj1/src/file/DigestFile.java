@@ -162,7 +162,7 @@ public class DigestFile {
 
         Map<Integer, Integer> degMap;
         if (replicationDegMap.containsKey(fileId))
-             degMap = replicationDegMap.get(fileId).p2;
+            degMap = replicationDegMap.get(fileId).p2;
         else
             degMap = new HashMap<>();
 
@@ -171,12 +171,13 @@ public class DigestFile {
 
         while ((n = inputFile.read(b, 0, MAX_CHUNK_SIZE)) >= MAX_CHUNK_SIZE) {
             ret.add(Arrays.copyOfRange(b, 0, n));
-            if (degMap.containsKey(i)) degMap.put(i, 0);
+            if (!degMap.containsKey(i)) degMap.put(i, 0);
             ++i;
         }
+
         DigestFile.replicationDegMap.put(fileId, new Pair<>(replicationDegree, degMap));
         // end chunk
-        degMap.put(i, 0);
+        if (!degMap.containsKey(i)) degMap.put(i, 0);
         ret.add(Arrays.copyOfRange(b, 0, n));
 
         return ret;
@@ -216,15 +217,15 @@ public class DigestFile {
 
     public static void main(String[] args) {
         //try {
-            //String filename = "filename.rar";
-            // String h = getHash(filename);
-            // divideFile(filename);
+        //String filename = "filename.rar";
+        // String h = getHash(filename);
+        // divideFile(filename);
 
-       //     String id = "416ebf6f9e407ba10294e58cbcdc1ef55b0920cd6fd6255fe6767528ddf50aba";
-       //     assembleFile(filename, id);
-       // } catch (IOException e) {
-       //     e.printStackTrace();
-       // }
+        //     String id = "416ebf6f9e407ba10294e58cbcdc1ef55b0920cd6fd6255fe6767528ddf50aba";
+        //     assembleFile(filename, id);
+        // } catch (IOException e) {
+        //     e.printStackTrace();
+        // }
         importMap();
         try {
             exportMap();
@@ -307,7 +308,7 @@ public class DigestFile {
     }
 
     public static boolean chunkIsOk(String fileId, int chunkNo) {
-        if (! replicationDegMap.containsKey(fileId)) return false;
+        if (!replicationDegMap.containsKey(fileId)) return false;
         var p = DigestFile.replicationDegMap.get(fileId);
 
         Integer desiredRepDeg = p.p1;
@@ -322,7 +323,7 @@ public class DigestFile {
         Pair<Integer, Map<Integer, Integer>> p = DigestFile.replicationDegMap.get(fileId);
         Integer desiredRepDeg = p.p1;
         Map<Integer, Integer> map = p.p2;
-        for (Integer key: map.keySet()) {
+        for (Integer key : map.keySet()) {
             if (map.get(key) < desiredRepDeg)
                 res.add(key);
         }
