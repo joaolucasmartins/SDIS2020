@@ -93,7 +93,7 @@ public class MessageHandler {
                         e.printStackTrace();
                         return;
                     }
-                    if (!DigestFile.containsFileKey(backupMsg.getFileId()))
+                    if (!DigestFile.replicationDegMap.containsKey(backupMsg.getFileId()))
                         DigestFile.addFileEntry(backupMsg.getFileId(), backupMsg.getReplication());
                     DigestFile.incrementChunkDeg(backupMsg.getFileId(), backupMsg.getChunkNo());
                     // send STORED reply message

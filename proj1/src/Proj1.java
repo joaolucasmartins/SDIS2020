@@ -81,33 +81,10 @@ public class Proj1 implements TestInterface {
             System.out.println("CMD: " + cmd);
             if (cmd.equalsIgnoreCase("putchunk")) {
                 try {
-                    DigestFile.divideFile("filename.txt", 3);
-                    PutChunkMsg putChunkMsg = new PutChunkMsg("1.0", this.id,
-                            DigestFile.getHash("filename.txt"), 0, 9,
-                            "filename.txt");
-                    PutChunkSender putChunkSender = new PutChunkSender(this.MDBSock, putChunkMsg, this.messageHandler);
-                    Thread t = new Thread(putChunkSender);
-                    t.start();
-                    try {
-                        t.join();
-                    } catch (InterruptedException e) {
-                        System.out.println("!!!!:warning:!!!!");
-                    }
-                } catch (IOException e) {
+                    this.backup("filename.txt", 3);
+                } catch (RemoteException e) {
                     e.printStackTrace();
                 }
-            } else if (cmd.equalsIgnoreCase("getchunk")) {
-                this.MDBSock.send(
-                        new GetChunkMsg("1.0", this.id,
-                                "0fe051a9f8f8de449f1b251d5ad4c78e62d5ff9393b7d9eb3e577e394354f4b4",
-                                0));
-
-            } else if (cmd.equalsIgnoreCase("removed")) {
-                this.MDBSock.send(
-                        new RemovedMsg("1.0", this.id,
-                                "0fe051a9f8f8de449f1b251d5ad4c78e62d5ff9393b7d9eb3e577e394354f4b4",
-                                0));
-
             } else if (cmd.equalsIgnoreCase("reclaim")) {
                 try {
                     this.reclaim(0);
@@ -191,21 +168,33 @@ public class Proj1 implements TestInterface {
         }
     }
 
-    /* USED BY THE TestApp (RMI) */
+    /* used by the TestApp (RMI) */
     @Override
     public String backup(String filePath, int replicationDegree) throws RemoteException {
-        String hash;
+        List<Thread> threads = new ArrayList<>();
         try {
-            // TODO NAO ESCREVE CHUNKS, APENAS LER
-            DigestFile.divideFile(filePath, replicationDegree);
-            hash = DigestFile.getHash(filePath);
-        } catch (IOException e) {
+            String fileId = DigestFile.getHash(filePath);
+            List<byte[]> chunks = DigestFile.divideFile(filePath, replicationDegree);
+            for (int i = 0; i < chunks.size(); ++i) {
+                // only backup chunks that don't have the desired replication degree
+                if (DigestFile.chunkIsOk(fileId, i)) continue;
+
+                PutChunkMsg putChunkMsg = new PutChunkMsg("1.0", this.id,
+                        fileId, i, replicationDegree, chunks.get(i));
+                PutChunkSender putChunkSender = new PutChunkSender(this.MDBSock, putChunkMsg, this.messageHandler);
+                Thread t = new Thread(putChunkSender);
+                t.start();
+                threads.add(t);
+            }
+
+            for (Thread t : threads) {
+                t.join();
+            }
+        } catch (IOException | InterruptedException e) {
             throw new RemoteException("Couldn't divide file " + filePath);
         }
-        for (Integer chunkNo: DigestFile.getChunksBellowRep(hash)) {
 
-        }
-        return "asd";
+        return "Backed up the file: " + filePath;
     }
 
     @Override
