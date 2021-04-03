@@ -131,10 +131,19 @@ public class MessageHandler {
                     // TODO Check if we are expecting this chunk msg
                     DigestFile.writeChunk(chunkMsg, chunkMsg.getFileId(), chunkMsg.getChunkNo());
                     break;
-                case RemovedMsg.type:
+                case RemovedMsg.type: //TODO Remove this
                     RemovedMsg removedMsg = (RemovedMsg) message;
                     DigestFile.decreaseChunkDeg(removedMsg.getFileId(), removedMsg.getChunkNo());
+                    if (DigestFile.hasChunk(removedMsg.getFileId(), removedMsg.getChunkNo()) &&
+                            !DigestFile.chunkIsOk(removedMsg.getFileId(), removedMsg.getChunkNo())) {
 
+                        int repDegree = DigestFile.getChunkDeg(removedMsg.getFileId(), removedMsg.getChunkNo());
+                        byte[] chunk = DigestFile.readChunk(removedMsg.getFileId(), removedMsg.getChunkNo());
+                        PutChunkMsg putChunkMsg = new PutChunkMsg(this.protocolVersion, this.selfID,
+                                removedMsg.getFileId(), removedMsg.getChunkNo(), repDegree, chunk);
+                        RemovedPutchunkSender removedPutchunkSender = new RemovedPutchunkSender(this.MDBSock, putChunkMsg, this);
+                        removedPutchunkSender.run();
+                    }
                     // TODO initiate the chunk backup subprotocol after random delay
                     // TODO if during this time, we get a PUTCHUNK for this chunk => back off
                     break;

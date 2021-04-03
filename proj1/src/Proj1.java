@@ -91,8 +91,10 @@ public class Proj1 implements TestInterface {
                 } catch (RemoteException e) {
                     e.printStackTrace();
                 }
+            } else if (cmd.equalsIgnoreCase("removed")) {
+                this.MCSock.send(new RemovedMsg(this.protocolVersion, this.id, "c1844545909fe089c87c73f089be8be3f7e27c40d63f4daab455a769b30cbbee", 0));
             }
-        } while (!cmd.equalsIgnoreCase("EXIT"));
+    } while (!cmd.equalsIgnoreCase("EXIT"));
 
         // shush threads
         this.MCSock.interrupt();
