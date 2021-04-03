@@ -191,21 +191,33 @@ public class Proj1 implements TestInterface {
         }
     }
 
-    /* USED BY THE TestApp (RMI) */
+    /* used by the TestApp (RMI) */
     @Override
     public String backup(String filePath, int replicationDegree) throws RemoteException {
-        String hash;
+        List<Thread> threads = new ArrayList<>();
         try {
-            // TODO NAO ESCREVE CHUNKS, APENAS LER
-            DigestFile.divideFile(filePath, replicationDegree);
-            hash = DigestFile.getHash(filePath);
-        } catch (IOException e) {
+            String fileId = DigestFile.getHash(filePath);
+            List<byte[]> chunks = DigestFile.divideFile(filePath, replicationDegree);
+            for (int i = 0; i < chunks.size(); ++i) {
+                // only backup chunks that don't have the desired replication degree
+                if (DigestFile.chunkIsOk(fileId, i)) continue;
+
+                PutChunkMsg putChunkMsg = new PutChunkMsg("1.0", this.id,
+                        fileId, 0, 9, chunks.get(i));
+                PutChunkSender putChunkSender = new PutChunkSender(this.MDBSock, putChunkMsg, this.messageHandler);
+                Thread t = new Thread(putChunkSender);
+                t.start();
+                threads.add(t);
+            }
+
+            for (Thread t : threads) {
+                t.join();
+            }
+        } catch (IOException | InterruptedException e) {
             throw new RemoteException("Couldn't divide file " + filePath);
         }
-        for (Integer chunkNo: DigestFile.getChunksBellowRep(hash)) {
 
-        }
-        return "asd";
+        return "Backed up the file: " + filePath;
     }
 
     @Override

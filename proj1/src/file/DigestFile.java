@@ -152,27 +152,34 @@ public class DigestFile {
     }
 
     /* divide a file into chunks */
-    public static void divideFile(String filename, Integer replicationDegree) throws IOException {
+    public static List<byte[]> divideFile(String filename, Integer replicationDegree) throws IOException {
+        List<byte[]> ret = new ArrayList<>();
+
         String fileId = getHash(filename);
         FileInputStream inputFile = new FileInputStream(FILE_DIR + filename);
         byte[] b = new byte[MAX_CHUNK_SIZE];
         int n, i = 0;
-        Map<Integer, Integer> degMap = new HashMap<>();
+
+        Map<Integer, Integer> degMap;
+        if (replicationDegMap.containsKey(fileId))
+             degMap = replicationDegMap.get(fileId).p2;
+        else
+            degMap = new HashMap<>();
 
         if (surpassesMaxChunks(filename))
             throw new MasNaoTeVouAlocar();
 
         while ((n = inputFile.read(b, 0, MAX_CHUNK_SIZE)) >= MAX_CHUNK_SIZE) {
-            final String chunkpath = fileId + File.separator + i;
-            degMap.put(i, 1);
-            writeChunk(chunkpath, b, n);
+            ret.add(Arrays.copyOfRange(b, 0, n));
+            if (degMap.containsKey(i)) degMap.put(i, 0);
             ++i;
         }
         DigestFile.replicationDegMap.put(fileId, new Pair<>(replicationDegree, degMap));
+        // end chunk
+        degMap.put(i, 0);
+        ret.add(Arrays.copyOfRange(b, 0, n));
 
-        final String chunkpath = fileId + File.separator + i;
-        degMap.put(i, 1);
-        writeChunk(chunkpath, b, n);
+        return ret;
     }
 
     /* reassemble a file from its chunks */
@@ -275,10 +282,6 @@ public class DigestFile {
         wr.close();
     }
 
-    public static boolean containsFileKey(String fileId) {
-        return DigestFile.replicationDegMap.containsKey(fileId);
-    }
-
     public static void addFileEntry(String fileId, Integer repDegree) {
         DigestFile.replicationDegMap.put(fileId, new Pair<>(repDegree, new HashMap<>()));
     }
@@ -292,7 +295,7 @@ public class DigestFile {
     }
 
     public static void decreaseChunkDeg(String fileId, Integer chunkNo) {
-        if (!DigestFile.containsFileKey(fileId)) return;
+        if (!replicationDegMap.containsKey(fileId)) return;
         Map<Integer, Integer> map = DigestFile.replicationDegMap.get(fileId).p2;
         if (map.containsKey(chunkNo) && map.get(chunkNo) > 0)
             map.replace(chunkNo, map.get(chunkNo) - 1);
@@ -301,6 +304,17 @@ public class DigestFile {
     public static Integer getChunkDeg(String fileId, Integer chunkNo) {
         Map<Integer, Integer> map = DigestFile.replicationDegMap.get(fileId).p2;
         return map.get(chunkNo);
+    }
+
+    public static boolean chunkIsOk(String fileId, int chunkNo) {
+        if (! replicationDegMap.containsKey(fileId)) return false;
+        var p = DigestFile.replicationDegMap.get(fileId);
+
+        Integer desiredRepDeg = p.p1;
+        Map<Integer, Integer> chunkInfo = p.p2;
+
+        if (!chunkInfo.containsKey(chunkNo)) return false;
+        return desiredRepDeg <= chunkInfo.get(chunkNo);
     }
 
     public static List<Integer> getChunksBellowRep(String fileId) {
