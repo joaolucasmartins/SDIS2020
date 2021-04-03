@@ -297,6 +297,9 @@ public class Proj1 implements TestInterface {
         currentCap = trimFiles(currentCap, false);
         if (currentCap > 0) trimFiles(currentCap, true);
 
+        if (DigestFile.getStorageSize() == Proj1.maxDiskSpaceB) this.MDBSock.leave();
+        else this.MDBSock.join();
+
         return "reclaim";
     }
 

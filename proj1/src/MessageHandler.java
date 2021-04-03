@@ -46,6 +46,10 @@ public class MessageHandler {
         }
     }
 
+    private boolean hasSpace(int newSize) {
+        return Proj1.maxDiskSpaceB < 0 || (DigestFile.getStorageSize() + newSize <= Proj1.maxDiskSpaceB);
+    }
+
     public void handleMessage(SockThread sock, String received) {
         final String[] receivedFields = received.split(Message.CRLF, 3);
         final String[] header = receivedFields[0].split(" ");
@@ -77,12 +81,11 @@ public class MessageHandler {
             switch (message.getType()) {
                 case PutChunkMsg.type:
                     PutChunkMsg backupMsg = (PutChunkMsg) message;
-                    // If we surpass storage space
-                    long storageSize = DigestFile.getStorageSize();
-                    if (storageSize + backupMsg.getChunk().length < Proj1.maxDiskSpaceB)
-                        break;
-                    if (DigestFile.hasChunk(backupMsg.getFileId(), backupMsg.getChunkNo()))
-                        break;
+                    // do not store duplicated chunks
+                    if (DigestFile.hasChunk(backupMsg.getFileId(), backupMsg.getChunkNo())) break;
+                    // if we surpass storage space
+                    if (!this.hasSpace(backupMsg.getChunk().length)) break;
+
                     try {
                         DigestFile.writeChunk(backupMsg.getFileId() + File.separator + backupMsg.getChunkNo(),
                                 backupMsg.getChunk(), backupMsg.getChunk().length);
@@ -100,8 +103,8 @@ public class MessageHandler {
                     this.MDBSock.send(response, random.nextInt(maxBackofMs));
 
                     // unsub MDB when storage is full
-                    if (storageSize + backupMsg.getChunk().length == Proj1.maxDiskSpaceB)
-                        this.MDBSock.leave();
+                    if (DigestFile.getStorageSize() == Proj1.maxDiskSpaceB) this.MDBSock.leave();
+
                     break;
                 case StoredMsg.type:
                     StoredMsg storedMsg = (StoredMsg) message;
