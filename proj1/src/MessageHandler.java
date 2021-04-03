@@ -101,7 +101,7 @@ public class MessageHandler {
                             backupMsg.getFileId(), backupMsg.getChunkNo());
 
                     StoredSender storedSender = new StoredSender(this.MCSock, (StoredMsg) response, this);
-                    storedSender.run();
+                    storedSender.run(); // TODO make this part of thread pool
                     // unsub MDB when storage is full
                     if (DigestFile.getStorageSize() == Proj1.maxDiskSpaceB) this.MDBSock.leave();
                     break;
@@ -123,7 +123,7 @@ public class MessageHandler {
                         response = new ChunkMsg(this.protocolVersion, this.selfID,
                                 getChunkMsg.getFileId(), getChunkMsg.getChunkNo());
                         ChunkSender chunkSender = new ChunkSender(this.MDRSock, (ChunkMsg) response, this);
-                        chunkSender.run();
+                        chunkSender.run(); // TODO make this part of thread pool
                     }
                     break;
                 case ChunkMsg.type:
@@ -134,6 +134,7 @@ public class MessageHandler {
                 case RemovedMsg.type:
                     RemovedMsg removedMsg = (RemovedMsg) message;
                     DigestFile.decreaseChunkDeg(removedMsg.getFileId(), removedMsg.getChunkNo());
+
                     // TODO initiate the chunk backup subprotocol after random delay
                     // TODO if during this time, we get a PUTCHUNK for this chunk => back off
                     break;
