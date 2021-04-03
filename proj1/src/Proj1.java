@@ -13,7 +13,7 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
 
 public class Proj1 implements TestInterface {
-    public static int maxDiskSpaceKB = -1;  // -1 means no limit
+    public static int maxDiskSpaceB = -1;  // -1 means no limit
     // cmd line arguments
     private final String protocolVersion;
     private final String id;
@@ -275,23 +275,25 @@ public class Proj1 implements TestInterface {
     }
 
     @Override
-    public String reclaim(int maxCapacity) throws RemoteException { // TODO Adicionar isto aos ENHANCE
-        if (maxCapacity < 0) {
-            maxDiskSpaceKB = -1;
+    public String reclaim(int newMaxDiskSpaceKB) throws RemoteException { // TODO Adicionar isto aos ENHANCE
+        int newMaxDiskSpaceB = newMaxDiskSpaceKB * 1000;
+
+        if (newMaxDiskSpaceB < 0) {
+            Proj1.maxDiskSpaceB = -1;
             // infinite capacity => do nothing
             return "Max disk space set to infinite KBytes.";
-        } else if (maxDiskSpaceKB >= 0) {
-            int capacityDelta = maxCapacity - maxDiskSpaceKB;
-            maxDiskSpaceKB = maxCapacity;
+        } else if (Proj1.maxDiskSpaceB >= 0) {
+            int capacityDelta = newMaxDiskSpaceB - Proj1.maxDiskSpaceB;
+            Proj1.maxDiskSpaceB = newMaxDiskSpaceB;
             // if max capacity is unchanged or increases, we don't need to do anything
             if (capacityDelta >= 0)
-                return "Max disk space set to " + maxCapacity + " KBytes.";
+                return "Max disk space set to " + newMaxDiskSpaceKB + " KBytes.";
         } else {
-           maxDiskSpaceKB = maxCapacity;
+            Proj1.maxDiskSpaceB = newMaxDiskSpaceB;
         }
 
         // remove things (trying to keep everything above 0 replication degree)
-        long currentCap = DigestFile.getStorageSize() - (maxDiskSpaceKB * 1000L);
+        long currentCap = DigestFile.getStorageSize() - Proj1.maxDiskSpaceB;
         System.err.println("Removing: " + currentCap);
         currentCap = trimFiles(currentCap, false);
         if (currentCap > 0) trimFiles(currentCap, true);

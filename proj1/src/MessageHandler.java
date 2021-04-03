@@ -78,7 +78,7 @@ public class MessageHandler {
                 case PutChunkMsg.type:
                     PutChunkMsg backupMsg = (PutChunkMsg) message;
                     // If we surpass storage space
-                    if (DigestFile.getStorageSize() * 1000 + backupMsg.getChunk().length < Proj1.maxDiskSpaceKB * 1000L)
+                    if (DigestFile.getStorageSize() + backupMsg.getChunk().length < Proj1.maxDiskSpaceB)
                         break;
                     if (DigestFile.hasChunk(backupMsg.getFileId(), backupMsg.getChunkNo()))
                         break;

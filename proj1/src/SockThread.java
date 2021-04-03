@@ -19,6 +19,22 @@ public class SockThread implements Runnable {
         this.port = port;
     }
 
+    public void join() {
+        try {
+            this.sock.joinGroup(this.group);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void leave() {
+        try {
+            this.sock.leaveGroup(this.group);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     public void setHandler(MessageHandler handler) {
         this.handler = handler;
     }
