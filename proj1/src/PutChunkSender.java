@@ -2,11 +2,20 @@ import message.Message;
 import message.PutChunkMsg;
 import message.StoredMsg;
 
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+
 public class PutChunkSender extends MessageSender<PutChunkMsg> {
     private static final int MAX_RETRANSMIT = 5;
     private static final long COLLECTION_INTERVAL = 1000; // in ms
+    private Queue<Message> receivedMessages;
     public PutChunkSender(SockThread sockThread, PutChunkMsg msg, MessageHandler handler) {
         super(sockThread, msg, handler);
+        this.receivedMessages = new ConcurrentLinkedQueue<>();
+    }
+
+    public void addMessage(Message message) {
+        receivedMessages.add(message);
     }
 
     private boolean checkIfStored(Message message) {
@@ -45,7 +54,7 @@ public class PutChunkSender extends MessageSender<PutChunkMsg> {
     @Override
     public void notify(Message message) {
         if (checkIfStored(message)) {
-            super.addMessage(message);
+            addMessage(message);
         }
     }
 }

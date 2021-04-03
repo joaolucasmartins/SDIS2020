@@ -162,14 +162,14 @@ public class DigestFile {
 
         while ((n = inputFile.read(b, 0, MAX_CHUNK_SIZE)) >= MAX_CHUNK_SIZE) {
             final String chunkpath = fileId + File.separator + i;
-            degMap.put(i, 1);
+            degMap.put(i, 0);
             writeChunk(chunkpath, b, n);
             ++i;
         }
         DigestFile.replicationDegMap.put(fileId, new Pair<>(replicationDegree, degMap));
 
         final String chunkpath = fileId + File.separator + i;
-        degMap.put(i, 1);
+        degMap.put(i, 0);
         writeChunk(chunkpath, b, n);
     }
 
