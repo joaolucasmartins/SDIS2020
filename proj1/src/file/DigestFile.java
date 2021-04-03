@@ -80,6 +80,8 @@ public class DigestFile {
         File fileDir = new File(FILE_DIR + File.separator + fileId);
         if (fileDir.listFiles() == null) return;
 
+        DigestFile.replicationDegMap.remove(fileId);  // TODO check if working correctly
+
         // to delete a directory, the directory must be empty
         for (File f : Objects.requireNonNull(fileDir.listFiles())) {
             f.delete();

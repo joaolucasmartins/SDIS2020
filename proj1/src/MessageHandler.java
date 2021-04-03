@@ -78,7 +78,8 @@ public class MessageHandler {
                 case PutChunkMsg.type:
                     PutChunkMsg backupMsg = (PutChunkMsg) message;
                     // If we surpass storage space
-                    if (DigestFile.getStorageSize() + backupMsg.getChunk().length < Proj1.maxDiskSpaceB)
+                    long storageSize = DigestFile.getStorageSize();
+                    if (storageSize + backupMsg.getChunk().length < Proj1.maxDiskSpaceB)
                         break;
                     if (DigestFile.hasChunk(backupMsg.getFileId(), backupMsg.getChunkNo()))
                         break;
@@ -97,16 +98,23 @@ public class MessageHandler {
                             backupMsg.getFileId(), backupMsg.getChunkNo());
                     Random random = new Random();
                     this.MDBSock.send(response, random.nextInt(maxBackofMs));
+
+                    // unsub MDB when storage is full
+                    if (storageSize + backupMsg.getChunk().length == Proj1.maxDiskSpaceB)
+                        this.MDBSock.leave();
                     break;
                 case StoredMsg.type:
                     StoredMsg storedMsg = (StoredMsg) message;
                     DigestFile.incrementChunkDeg(storedMsg.getFileId(), storedMsg.getChunkNo());
                     break;
                 case DeleteMsg.type:
-                    // TODO delete file here
                     DeleteMsg delMsg = (DeleteMsg) message;
                     DigestFile.deleteFile(delMsg.getFileId());
-                    return;  // file deletion doesn't send a reply
+
+                    // sub MDB when storage is not full
+                    if (DigestFile.getStorageSize() < Proj1.maxDiskSpaceB)
+                        this.MDBSock.join();
+                    return;  // IMP file deletion doesn't send a reply
                 case GetChunkMsg.type:
                     GetChunkMsg getChunkMsg = (GetChunkMsg) message;
                     if (DigestFile.hasChunk(getChunkMsg.getFileId(), getChunkMsg.getChunkNo())) {
@@ -122,7 +130,6 @@ public class MessageHandler {
                     break;
                 case RemovedMsg.type:
                     RemovedMsg removedMsg = (RemovedMsg) message;
-
                     DigestFile.decreaseChunkDeg(removedMsg.getFileId(), removedMsg.getChunkNo());
                     // TODO initiate the chunk backup subprotocol after random delay
                     // TODO if during this time, we get a PUTCHUNK for this chunk => back off

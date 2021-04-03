@@ -60,7 +60,6 @@ public class Proj1 implements TestInterface {
 
     private SockThread createSocketThread(InetAddress addr, Integer port) throws IOException {
         MulticastSocket socket = new MulticastSocket(port);
-        socket.joinGroup(addr);
         return new SockThread(socket, addr, port);
     }
 
