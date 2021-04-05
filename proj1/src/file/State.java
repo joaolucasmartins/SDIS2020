@@ -7,18 +7,26 @@ import java.util.concurrent.ConcurrentMap;
 
 public class State implements Serializable {
     public static class FileInfo implements Serializable {
-        private final Boolean isInitiator;
+        private String filePath = null;  // only set if we are the initiator
         private Integer desiredRep;
         private final ConcurrentMap<Integer, Integer> chunkInfo;
 
-        public FileInfo(boolean isInitiator, int desiredRep) {
-            this.isInitiator = isInitiator;
+        public FileInfo(int desiredRep) {
             this.desiredRep = desiredRep;
             this.chunkInfo = new ConcurrentHashMap<>();
         }
 
+        public FileInfo(String filePath, int desiredRep) {
+            this(desiredRep);
+            this.filePath = filePath;
+        }
+
         public boolean isInitiator() {
-            return isInitiator;
+            return this.filePath != null;
+        }
+
+        public String getFilePath() {
+            return this.filePath;
         }
 
         public int getDesiredRep() {
@@ -69,6 +77,10 @@ public class State implements Serializable {
         return maxDiskSpaceB;
     }
 
+    public synchronized Integer getMaxDiskSpaceKB() {
+        return maxDiskSpaceB < 0 ? -1 : maxDiskSpaceB / 1000;
+    }
+
     public synchronized void setMaxDiskSpaceB(Integer maxDiskSpaceB) {
         this.maxDiskSpaceB = maxDiskSpaceB;
     }
@@ -82,9 +94,18 @@ public class State implements Serializable {
         return this.replicationMap;
     }
 
-    public void addFileEntry(String fileId, boolean isInitiator, int desiredRep) {
+    public void addFileEntry(String fileId, String filePath, int desiredRep) {
         if (!this.replicationMap.containsKey(fileId)) {
-            this.replicationMap.put(fileId, new FileInfo(isInitiator, desiredRep));
+            this.replicationMap.put(fileId, new FileInfo(filePath, desiredRep));
+        } else {
+            FileInfo fileInfo = this.replicationMap.get(fileId);
+            fileInfo.setDesiredRep(desiredRep);
+        }
+    }
+
+    public void addFileEntry(String fileId, int desiredRep) {
+        if (!this.replicationMap.containsKey(fileId)) {
+            this.replicationMap.put(fileId, new FileInfo(desiredRep));
         } else {
             FileInfo fileInfo = this.replicationMap.get(fileId);
             fileInfo.setDesiredRep(desiredRep);

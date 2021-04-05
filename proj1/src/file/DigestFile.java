@@ -162,7 +162,7 @@ public class DigestFile {
         if (surpassesMaxChunks(filename))
             throw new MasNaoTeVouAlocar();
 
-        state.addFileEntry(fileId, true, replicationDegree);
+        state.addFileEntry(fileId, FILE_DIR + filename, replicationDegree);
 
         while ((n = inputFile.read(b, 0, MAX_CHUNK_SIZE)) >= MAX_CHUNK_SIZE) {
             ret.add(Arrays.copyOfRange(b, 0, n));
