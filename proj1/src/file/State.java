@@ -1,19 +1,20 @@
 package file;
 
 import java.io.Serializable;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
-public class ReplicationDegMap implements Serializable {
+public class State implements Serializable {
     public static class FileInfo implements Serializable {
         private final Boolean isInitiator;
         private Integer desiredRep;
-        private final Map<Integer, Integer> chunkInfo;
+        private final ConcurrentMap<Integer, Integer> chunkInfo;
 
         public FileInfo(boolean isInitiator, int desiredRep) {
             this.isInitiator = isInitiator;
             this.desiredRep = desiredRep;
-            this.chunkInfo = new HashMap<>();
+            this.chunkInfo = new ConcurrentHashMap<>();
         }
 
         public boolean isInitiator() {
@@ -56,10 +57,20 @@ public class ReplicationDegMap implements Serializable {
         }
     }
 
-    private final Map<String, FileInfo> replicationMap;
+    private final ConcurrentMap<String, FileInfo> replicationMap;
+    private volatile Integer maxDiskSpaceB;
 
-    public ReplicationDegMap() {
-        this.replicationMap = new HashMap<>();
+    public State() {
+        this.replicationMap = new ConcurrentHashMap<>();
+        this.maxDiskSpaceB = -1;
+    }
+
+    public synchronized Integer getMaxDiskSpaceB() {
+        return maxDiskSpaceB;
+    }
+
+    public synchronized void setMaxDiskSpaceB(Integer maxDiskSpaceB) {
+        this.maxDiskSpaceB = maxDiskSpaceB;
     }
 
     public FileInfo getFileInfo(String fileId) {

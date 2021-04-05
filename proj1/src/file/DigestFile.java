@@ -12,7 +12,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 public class DigestFile {
-    public static ReplicationDegMap replicationDegMap;
+    public static State state;
     private final static Integer CHUNK_LEN = 256;
     private static final int MAX_CHUNK_SIZE = 64000;
     private static final int MAX_CHUNK_NUM = 999999;
@@ -79,7 +79,7 @@ public class DigestFile {
         File fileDir = new File(FILE_DIR + File.separator + fileId);
         if (fileDir.listFiles() == null) return;
 
-        replicationDegMap.removeFileEntry(fileId);  // TODO check if working correctly
+        state.removeFileEntry(fileId);  // TODO check if working correctly
 
         // to delete a directory, the directory must be empty
         for (File f : Objects.requireNonNull(fileDir.listFiles())) {
@@ -162,16 +162,16 @@ public class DigestFile {
         if (surpassesMaxChunks(filename))
             throw new MasNaoTeVouAlocar();
 
-        replicationDegMap.addFileEntry(fileId, true, replicationDegree);
+        state.addFileEntry(fileId, true, replicationDegree);
 
         while ((n = inputFile.read(b, 0, MAX_CHUNK_SIZE)) >= MAX_CHUNK_SIZE) {
             ret.add(Arrays.copyOfRange(b, 0, n));
-            replicationDegMap.declareChunk(fileId, i);  // only declares if it isn't declared yet
+            state.declareChunk(fileId, i);  // only declares if it isn't declared yet
             ++i;
         }
 
         // end chunk
-        replicationDegMap.declareChunk(fileId, i);  // only declares if it isn't declared yet
+        state.declareChunk(fileId, i);  // only declares if it isn't declared yet
         ret.add(Arrays.copyOfRange(b, 0, n));
 
         return ret;
@@ -232,11 +232,11 @@ public class DigestFile {
         try {
             FileInputStream fileIn = new FileInputStream(FILE_DIR + File.separator + REPMAPNAME);
             ObjectInputStream in = new ObjectInputStream(fileIn);
-            DigestFile.replicationDegMap = (ReplicationDegMap) in.readObject();
+            DigestFile.state = (State) in.readObject();
             in.close();
             fileIn.close();
         } catch (IOException | ClassNotFoundException i) {
-            DigestFile.replicationDegMap = new ReplicationDegMap();
+            DigestFile.state = new State();
         }
     }
 
@@ -244,7 +244,7 @@ public class DigestFile {
         try {
             FileOutputStream fileOut = new FileOutputStream(FILE_DIR + File.separator + REPMAPNAME);
             ObjectOutputStream out = new ObjectOutputStream(fileOut);
-            out.writeObject(DigestFile.replicationDegMap);
+            out.writeObject(DigestFile.state);
             out.close();
             fileOut.close();
         } catch (IOException i) {
@@ -253,7 +253,7 @@ public class DigestFile {
     }
 
     public static boolean chunkIsOk(String fileId, int chunkNo) {
-        ReplicationDegMap.FileInfo p = replicationDegMap.getFileInfo(fileId);
+        State.FileInfo p = state.getFileInfo(fileId);
         if (p == null) return false;
 
         int desiredRepDeg = p.getDesiredRep();
@@ -265,7 +265,7 @@ public class DigestFile {
 
     public static List<Integer> getChunksBellowRep(String fileId) {
         List<Integer> res = new ArrayList<>();
-        ReplicationDegMap.FileInfo fileInfo = DigestFile.replicationDegMap.getFileInfo(fileId);
+        State.FileInfo fileInfo = DigestFile.state.getFileInfo(fileId);
         Integer desiredRepDeg = fileInfo.getDesiredRep();
         Map<Integer, Integer> map = fileInfo.getAllChunks();
         for (Integer key : map.keySet()) {

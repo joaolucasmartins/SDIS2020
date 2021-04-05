@@ -1,6 +1,5 @@
 import file.DigestFile;
 import message.*;
-import utils.Pair;
 
 import java.io.File;
 import java.io.IOException;
@@ -47,7 +46,8 @@ public class MessageHandler {
     }
 
     private boolean hasSpace(int newSize) {
-        return Proj1.maxDiskSpaceB < 0 || (DigestFile.getStorageSize() + newSize <= Proj1.maxDiskSpaceB);
+        return DigestFile.state.getMaxDiskSpaceB() < 0 ||
+                (DigestFile.getStorageSize() + newSize <= DigestFile.state.getMaxDiskSpaceB());
     }
 
     public void handleMessage(SockThread sock, String received) {
@@ -93,8 +93,8 @@ public class MessageHandler {
                         e.printStackTrace();
                         return;
                     }
-                    DigestFile.replicationDegMap.addFileEntry(backupMsg.getFileId(), false, backupMsg.getReplication());
-                    DigestFile.replicationDegMap.incrementChunkDeg(backupMsg.getFileId(), backupMsg.getChunkNo());
+                    DigestFile.state.addFileEntry(backupMsg.getFileId(), false, backupMsg.getReplication());
+                    DigestFile.state.incrementChunkDeg(backupMsg.getFileId(), backupMsg.getChunkNo());
                     // send STORED reply message
                     response = new StoredMsg(this.protocolVersion, this.selfID,
                             backupMsg.getFileId(), backupMsg.getChunkNo());
@@ -102,18 +102,18 @@ public class MessageHandler {
                     StoredSender storedSender = new StoredSender(this.MCSock, (StoredMsg) response, this);
                     storedSender.run(); // TODO make this part of thread pool
                     // unsub MDB when storage is full
-                    if (DigestFile.getStorageSize() == Proj1.maxDiskSpaceB) this.MDBSock.leave();
+                    if (DigestFile.getStorageSize() == DigestFile.state.getMaxDiskSpaceB()) this.MDBSock.leave();
                     break;
                 case StoredMsg.type:
                     StoredMsg storedMsg = (StoredMsg) message;
-                    DigestFile.replicationDegMap.incrementChunkDeg(storedMsg.getFileId(), storedMsg.getChunkNo());
+                    DigestFile.state.incrementChunkDeg(storedMsg.getFileId(), storedMsg.getChunkNo());
                     break;
                 case DeleteMsg.type:
                     DeleteMsg delMsg = (DeleteMsg) message;
                     DigestFile.deleteFile(delMsg.getFileId());
 
                     // sub MDB when storage is not full
-                    if (DigestFile.getStorageSize() < Proj1.maxDiskSpaceB)
+                    if (DigestFile.getStorageSize() < DigestFile.state.getMaxDiskSpaceB())
                         this.MDBSock.join();
                     return;  // IMP file deletion doesn't send a reply
                 case GetChunkMsg.type:
@@ -132,11 +132,11 @@ public class MessageHandler {
                     break;
                 case RemovedMsg.type: // TODO Remove this
                     RemovedMsg removedMsg = (RemovedMsg) message;
-                    DigestFile.replicationDegMap.decrementChunkDeg(removedMsg.getFileId(), removedMsg.getChunkNo());
+                    DigestFile.state.decrementChunkDeg(removedMsg.getFileId(), removedMsg.getChunkNo());
                     if (DigestFile.hasChunk(removedMsg.getFileId(), removedMsg.getChunkNo()) &&
                             !DigestFile.chunkIsOk(removedMsg.getFileId(), removedMsg.getChunkNo())) {
 
-                        int repDegree = DigestFile.replicationDegMap.getChunkDeg(removedMsg.getFileId(), removedMsg.getChunkNo());
+                        int repDegree = DigestFile.state.getChunkDeg(removedMsg.getFileId(), removedMsg.getChunkNo());
                         byte[] chunk = DigestFile.readChunk(removedMsg.getFileId(), removedMsg.getChunkNo());
                         PutChunkMsg putChunkMsg = new PutChunkMsg(this.protocolVersion, this.selfID,
                                 removedMsg.getFileId(), removedMsg.getChunkNo(), repDegree, chunk);
@@ -157,6 +157,6 @@ public class MessageHandler {
     }
 
     private void sendPutChunk(String fileId, Integer chunkNo) {
-        
+
     }
 }
