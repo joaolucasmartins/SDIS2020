@@ -114,22 +114,11 @@ public class Proj1 implements TestInterface {
         do {
             cmd = scanner.nextLine();
             System.out.println("CMD: " + cmd);
-            String filePath = "duckman.mkv";
+            String filePath = "1b.txt";
             if (cmd.equalsIgnoreCase("backup")) {
                 try {
                     this.backup(filePath, 1);
                 } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
-            } else if (cmd.equalsIgnoreCase("drip")) {
-                try {
-                    List<byte[]> chunks = DigestFile.divideFile(filePath, 0);
-                    for (int i=0; i<chunks.size(); ++i) {
-                        byte[] b = chunks.get(i);
-                        DigestFile.writeChunk("test/" + i, b, b.length);
-                        System.out.println(b.length);
-                    }
-                } catch (IOException e) {
                     e.printStackTrace();
                 }
             } else if (cmd.equalsIgnoreCase("reclaim")) {

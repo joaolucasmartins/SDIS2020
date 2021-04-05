@@ -1,16 +1,9 @@
 package message;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-
 import static java.lang.Integer.parseInt;
 
 public class MessageCreator {
-    private static boolean containsCRLF(String body) {
-        return body.substring(0, 4).equals(Message.CRLF + Message.CRLF);
-    }
-
-    public static Message createMessage(String[] header, String body) throws NoSuchMessage {
+    public static Message createMessage(String[] header, byte[] body) throws NoSuchMessage {
         Message res = null;
         switch (header[Message.typeField]) {
             // Backup Subprotocol
@@ -20,7 +13,7 @@ public class MessageCreator {
                         header[Message.fileField],
                         parseInt(header[Message.chunkField]),
                         parseInt(header[Message.replicationField]),
-                        body.getBytes(StandardCharsets.US_ASCII));
+                        body);
                 break;
             case (StoredMsg.type):
                 res = new StoredMsg(header[Message.versionField],
@@ -39,7 +32,7 @@ public class MessageCreator {
                 res = new ChunkMsg(header[Message.versionField], header[Message.idField],
                         header[Message.fileField],
                         parseInt(header[Message.chunkField]),
-                        body.getBytes(StandardCharsets.US_ASCII));
+                        body);
                 break;
             // File deletion Subprotocol
             case (DeleteMsg.type):
@@ -58,7 +51,6 @@ public class MessageCreator {
                 throw new NoSuchMessage(header[Message.typeField]);
         }
 
-        assert res != null;
         return res;
     }
 }

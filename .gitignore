@@ -1,8 +1,5 @@
 **/.idea
 proj1/out
-proj1/files
-**/duckman.mkv
-**/test.txt
 
 # https://github.com/github/gitignore/blob/master/Java.gitignore
 # Compiled class file

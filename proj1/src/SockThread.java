@@ -3,6 +3,7 @@ import message.Message;
 import java.io.IOException;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class SockThread implements Runnable {
@@ -79,8 +80,8 @@ public class SockThread implements Runnable {
                 continue;
             }
 
-            String received = new String(packet.getData(), 0, packet.getLength(), StandardCharsets.US_ASCII);
-            this.handler.handleMessage(this, received);
+            this.handler.handleMessage(this,
+                    Arrays.copyOfRange(packet.getData(), 0, packet.getLength()));
         }
     }
 

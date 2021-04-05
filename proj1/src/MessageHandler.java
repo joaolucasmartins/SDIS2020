@@ -45,13 +45,23 @@ public class MessageHandler {
         }
     }
 
-    public void handleMessage(SockThread sock, String received) {
-        final String[] receivedFields = received.split(Message.CRLF, 3);
-        final String[] header = receivedFields[0].split(" ");
-        final String body = (receivedFields.length > 2) ? receivedFields[2] : null;
+    public void handleMessage(SockThread sock, byte[] receivedData) {
+        int crlfCount = 0;
+        int headerCutoff;
+        for (headerCutoff = 0; headerCutoff < receivedData.length - 1; ++headerCutoff) {
+            if (receivedData[headerCutoff] == 0xD && receivedData[headerCutoff + 1] == 0xA)
+                ++crlfCount;
+            if (crlfCount == 2)
+                break;
+        }
+
+        final String[] header = new String(receivedData, 0, headerCutoff - 2).split(" ");
+        byte[] body = (receivedData.length <= headerCutoff + 2) ?
+                new byte[0] :
+                Arrays.copyOfRange(receivedData, headerCutoff + 2, receivedData.length);
 
         if (header[Message.idField].equals(this.selfID)) {
-            System.out.println("We were the ones that sent this message. Skipping..");
+            // System.out.println("We were the ones that sent this message. Skipping..");
             return;
         }
 

@@ -152,27 +152,41 @@ public class DigestFile {
 
     /* divide a file into chunks */
     public static List<byte[]> divideFile(String filename, int replicationDegree) throws IOException {
-        List<byte[]> ret = new ArrayList<>();
-
-        String fileId = getHash(filename);
-        FileInputStream inputFile = new FileInputStream(FILE_DIR + filename);
-        byte[] b = new byte[MAX_CHUNK_SIZE];
-        int n, i = 0;
-
         if (surpassesMaxChunks(filename))
             throw new MasNaoTeVouAlocar();
 
+        String filePath = FILE_DIR + filename;
+        String fileId = getHash(filename);
+        long fileSize = new File(FILE_DIR + filename).length();
+        FileInputStream inputStream = new FileInputStream(filePath);
+
         state.addFileEntry(fileId, FILE_DIR + filename, replicationDegree);
 
-        while ((n = inputFile.read(b, 0, MAX_CHUNK_SIZE)) >= MAX_CHUNK_SIZE) {
-            ret.add(Arrays.copyOfRange(b, 0, n));
-            state.declareChunk(fileId, i);  // only declares if it isn't declared yet
-            ++i;
+        List<byte[]> ret = new ArrayList<>();
+        int n, i = 0;
+        long remainingSize = fileSize;
+        while (remainingSize > 0) {
+            int chunkSize;
+            if (MAX_CHUNK_SIZE <= remainingSize) {
+                chunkSize = MAX_CHUNK_SIZE;
+            } else {
+                chunkSize = (int) remainingSize;
+            }
+            byte[] b = new byte[chunkSize];
+            n = inputStream.read(b, 0, chunkSize);
+            if (n != chunkSize)
+                System.err.println("WTF?");
+
+            remainingSize -= chunkSize;
+
+            state.declareChunk(fileId, i++);  // only declares if it isn't declared yet
+            ret.add(b);
         }
 
-        // end chunk
-        state.declareChunk(fileId, i);  // only declares if it isn't declared yet
-        ret.add(Arrays.copyOfRange(b, 0, n));
+        if (fileSize % MAX_CHUNK_SIZE == 0) {
+            state.declareChunk(fileId, i);  // only declares if it isn't declared yet
+            ret.add(new byte[0]);
+        }
 
         return ret;
     }
@@ -184,7 +198,7 @@ public class DigestFile {
         f.createNewFile();
         FileOutputStream file = new FileOutputStream(f);
 
-        for (byte[] chunk: chunks)
+        for (byte[] chunk : chunks)
             file.write(chunk, 0, chunk.length);
     }
 
