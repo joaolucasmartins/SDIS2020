@@ -88,7 +88,6 @@ public class SockThread implements Runnable {
         System.out.println("Sent: " + message);
         DatagramPacket packet = new DatagramPacket(packetContent, packetContent.length, group, port);
         try {
-            System.out.println(this.toString());
             sock.send(packet);
         } catch (IOException e) {
             e.printStackTrace(); // TODO Move this maybe, do we need to throw it outside?

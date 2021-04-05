@@ -64,6 +64,7 @@ public class MessageHandler {
             return;
         }
         assert message != null;
+        System.out.println("Received: " + message);
 
         // notify observers
         for (Observer obs : this.observers) {

@@ -15,8 +15,15 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
 
 public class Proj1 implements TestInterface {
+    private final ThreadPoolExecutor generalThreadPool;
+    private final ThreadPoolExecutor backupThreadPool;
+
+    private boolean closed = false;
     // cmd line arguments
     private final String protocolVersion;
     private final String id;
@@ -37,6 +44,9 @@ public class Proj1 implements TestInterface {
     public Proj1(String[] args) throws IOException {
         // parse args
         if (args.length != 9) usage();
+
+        this.generalThreadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(20);
+        this.backupThreadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
 
         this.protocolVersion = args[0];
         this.id = args[1];
@@ -73,10 +83,17 @@ public class Proj1 implements TestInterface {
     }
 
     public void cleanup() {
+        if (closed) return;
+        closed = true;
+
         this.MCSock.close();
         this.MDBSock.close();
         this.MDRSock.close();
         this.messageHandler.saveMap();
+
+        // shutdown executors
+        this.backupThreadPool.shutdown();
+        this.generalThreadPool.shutdown();
 
         // cleanup the access point
         if (registry != null) {
@@ -84,7 +101,7 @@ public class Proj1 implements TestInterface {
                 registry.unbind(rmiName);
                 UnicastRemoteObject.unexportObject(this, true);
             } catch (Exception e) {
-                e.printStackTrace();
+                System.err.println("Failed to unregister our RMI service.");
             }
         }
     }
@@ -98,7 +115,7 @@ public class Proj1 implements TestInterface {
         do {
             cmd = scanner.nextLine();
             System.out.println("CMD: " + cmd);
-            String filePath = "filename.txt";
+            String filePath = "duckman.mkv";
             if (cmd.equalsIgnoreCase("backup")) {
                 try {
                     this.backup(filePath, 1);
@@ -191,12 +208,12 @@ public class Proj1 implements TestInterface {
         }
 
         prog.mainLoop();
+        System.exit(0);
     }
 
     /* used by the TestApp (RMI) */
     @Override
     public String backup(String filePath, int replicationDegree) throws RemoteException {
-        List<Thread> threads = new ArrayList<>();
         try {
             String fileId = DigestFile.getHash(filePath);
             List<byte[]> chunks = DigestFile.divideFile(filePath, replicationDegree);
@@ -207,15 +224,10 @@ public class Proj1 implements TestInterface {
                 PutChunkMsg putChunkMsg = new PutChunkMsg("1.0", this.id,
                         fileId, i, replicationDegree, chunks.get(i));
                 PutChunkSender putChunkSender = new PutChunkSender(this.MDBSock, putChunkMsg, this.messageHandler);
-                Thread t = new Thread(putChunkSender);
-                t.start();
-                threads.add(t);
-            }
 
-            for (Thread t : threads) { // TODO Falhar qd uma thread nao der store de um chunk?
-                t.join();
+                this.backupThreadPool.execute(putChunkSender);
             }
-        } catch (IOException | InterruptedException e) {
+        } catch (IOException e) {
             throw new RemoteException("Couldn't divide file " + filePath);
         }
 

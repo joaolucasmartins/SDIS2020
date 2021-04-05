@@ -96,9 +96,9 @@ public class State implements Serializable {
     }
 
     public synchronized boolean updateStorageSize(long sizeToAddB) {
-        if (filledStorageSizeB < 0) return true;
+        if (maxDiskSpaceB < 0) return true;
 
-        if (filledStorageSizeB + sizeToAddB < DigestFile.state.getMaxDiskSpaceKB()) {
+        if (filledStorageSizeB + sizeToAddB < maxDiskSpaceB) {
             filledStorageSizeB += sizeToAddB;
             return true;
         }
@@ -106,7 +106,7 @@ public class State implements Serializable {
     }
 
     public synchronized boolean isStorageFull() {
-        return this.maxDiskSpaceB < 0 || (this.filledStorageSizeB < this.maxDiskSpaceB);
+        return this.maxDiskSpaceB > 0 && (this.filledStorageSizeB < this.maxDiskSpaceB);
     }
 
     public FileInfo getFileInfo(String fileId) {

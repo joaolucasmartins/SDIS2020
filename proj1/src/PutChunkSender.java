@@ -43,7 +43,7 @@ public class PutChunkSender extends MessageSender<PutChunkMsg> {
             while (this.receivedMessages.poll() != null)
                 ++storedCnt;
 
-            if (storedCnt > this.message.getReplication()) {
+            if (storedCnt >= this.message.getReplication()) {
                 this.success.set(true);
                 return;
             }
