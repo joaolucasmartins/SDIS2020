@@ -93,7 +93,7 @@ public class MessageHandler {
                         e.printStackTrace();
                         return;
                     }
-                    DigestFile.state.addFileEntry(backupMsg.getFileId(), false, backupMsg.getReplication());
+                    DigestFile.state.addFileEntry(backupMsg.getFileId(), backupMsg.getReplication());
                     DigestFile.state.incrementChunkDeg(backupMsg.getFileId(), backupMsg.getChunkNo());
                     // send STORED reply message
                     response = new StoredMsg(this.protocolVersion, this.selfID,

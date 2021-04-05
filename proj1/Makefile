@@ -25,4 +25,10 @@ test_backup: all
 test_del: all
 	java -classpath ${src_dir} TestApp rmithing:1029 DELETE filename.txt
 
+test_state: all
+	java -classpath ${src_dir} TestApp rmithing:1029 STATE
+
+test_state2: all
+	java -classpath ${src_dir} TestApp rmithing2:1030 STATE
+
 .PHONY: all clean peer1 peer2 test

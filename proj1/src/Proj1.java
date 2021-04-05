@@ -1,4 +1,5 @@
 import file.DigestFile;
+import file.State;
 import message.PutChunkMsg;
 import message.GetChunkMsg;
 import message.RemovedMsg;
@@ -23,6 +24,8 @@ public class Proj1 implements TestInterface {
     private final SockThread MDRSock;
     private final MessageHandler messageHandler;
 
+    public Registry registry = null;
+    public String rmiName = null;
 
     public String getAccessPointName() {
         return this.accessPoint;
@@ -67,6 +70,16 @@ public class Proj1 implements TestInterface {
         this.MDBSock.close();
         this.MDRSock.close();
         this.messageHandler.saveMap();
+
+        // cleanup the access point
+        if (registry != null) {
+            try {
+                registry.unbind(rmiName);
+                UnicastRemoteObject.unexportObject(this, true);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     private void mainLoop() {
@@ -139,34 +152,21 @@ public class Proj1 implements TestInterface {
 
         // setup the access point
         TestInterface stub;
-        Registry registry = null;
-        String rmiName = null;
         try {
             stub = (TestInterface) UnicastRemoteObject.exportObject(prog, 0);
             String[] rmiinfoSplit = prog.getAccessPointName().split(":");
-            rmiName = rmiinfoSplit[0];
+            prog.rmiName = rmiinfoSplit[0];
             if (rmiinfoSplit.length > 1)
-                registry = LocateRegistry.getRegistry("localhost", Integer.parseInt(rmiinfoSplit[1]));
+                prog.registry = LocateRegistry.getRegistry("localhost", Integer.parseInt(rmiinfoSplit[1]));
             else
-                registry = LocateRegistry.getRegistry();
-            registry.bind(rmiName, stub);
+                prog.registry = LocateRegistry.getRegistry();
+            prog.registry.bind(prog.rmiName, stub);
         } catch (Exception e) {
             System.err.println("Failed setting up the access point for use by the testing app.");
             // e.printStackTrace();
         }
 
         prog.mainLoop();
-        prog.cleanup();
-
-        // cleanup the access point
-        if (registry != null) {
-            try {
-                registry.unbind(rmiName);
-                UnicastRemoteObject.unexportObject(prog, false);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
     }
 
     /* used by the TestApp (RMI) */
@@ -281,22 +281,61 @@ public class Proj1 implements TestInterface {
             DigestFile.state.setMaxDiskSpaceB(newMaxDiskSpaceB);
         }
 
-        // remove things (trying to keep everything above 0 replication degree)
         long currentCap = DigestFile.getStorageSize() - DigestFile.state.getMaxDiskSpaceB();
-        System.err.println("Removing: " + currentCap);
-        currentCap = trimFiles(currentCap, false);
-        if (currentCap > 0) trimFiles(currentCap, true);
+        if (currentCap > 0) {
+            // remove things (trying to keep everything above 0 replication degree)
+            System.err.println("Removing: " + currentCap);
+            currentCap = trimFiles(currentCap, false);
+            if (currentCap > 0) trimFiles(currentCap, true);
 
-        if (DigestFile.getStorageSize() == DigestFile.state.getMaxDiskSpaceB())
-            this.MDBSock.leave();
-        else
-            this.MDBSock.join();
+            if (DigestFile.getStorageSize() == DigestFile.state.getMaxDiskSpaceB())
+                this.MDBSock.leave();
+            else
+                this.MDBSock.join();
+        }
 
         return "Max disk space set to " + newMaxDiskSpaceKB + " KBytes.";
     }
 
     @Override
     public String state() throws RemoteException {
-        return this.toString();
+        StringBuilder filesIInitiated = new StringBuilder();
+        filesIInitiated.append("Files I initiated the backup of:\n");
+        StringBuilder chunksIStore = new StringBuilder();
+        chunksIStore.append("Chunks I am storing:\n");
+
+        for (var entry : DigestFile.state.getAllFilesInfo().entrySet()) {
+            String fileId = entry.getKey();
+            State.FileInfo fileInfo = entry.getValue();
+
+            if (fileInfo.isInitiator()) {
+                filesIInitiated.append("\tFile path: ").append(fileInfo.getFilePath()).append("\n");
+                filesIInitiated.append("\t\tFile ID: ").append(fileId).append("\n");
+                filesIInitiated.append("\t\tDesired replication degree: ").append(fileInfo.getDesiredRep()).append("\n");
+                filesIInitiated.append("\t\tChunks:\n");
+                for (var chunkEntry : fileInfo.getAllChunks().entrySet()) {
+                    filesIInitiated.append("\t\t\tID: ").append(chunkEntry.getKey())
+                            .append(" - Perceived rep.: ").append(chunkEntry.getValue()).append("\n");
+                }
+            } else {
+                for (var chunkEntry : fileInfo.getAllChunks().entrySet()) {
+                    int chunkId = chunkEntry.getKey();
+                    int perceivedRep = chunkEntry.getValue();
+
+                    chunksIStore.append("\tChunk ID: ").append(fileId).append(" - ").append(chunkId).append("\n");
+                    chunksIStore.append("\t\tSize: ").append(DigestFile.getChunkSize(fileId, chunkId)).append("\n");
+                    chunksIStore.append("\t\tDesired replication degree:").append(fileInfo.getDesiredRep()).append("\n");
+                    chunksIStore.append("\t\tPerceived replication degree:").append(perceivedRep).append("\n");
+                }
+            }
+        }
+
+        int maxStorageSizeB = DigestFile.state.getMaxDiskSpaceB();
+        return filesIInitiated
+                .append(chunksIStore)
+                .append("Storing ").append(Math.round(DigestFile.getStorageSize() / 1000.0))
+                .append("KB of a maximum of ")
+                .append(maxStorageSizeB < 0 ? "infinite " : maxStorageSizeB / 1000).append("KB.")
+                .toString();
     }
 }
