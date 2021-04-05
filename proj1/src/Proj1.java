@@ -203,13 +203,14 @@ public class Proj1 implements TestInterface {
     public String restore(String filePath) throws RemoteException {
         try {
             String fileHash = DigestFile.getHash(filePath);
-            int chunkNo = DigestFile.getChunkCount(filePath);
+            int chunkNo = DigestFile.getChunkCount(filePath); // TODO Esperar até o ultimo ter size 0 ou isto é 😎?
             if (chunkNo < 0) return "file " + filePath + " is too big";
             // TODO repetir while replication != 0 (atencao se temos o chunk connosco ou nao (reclaim))
             for (int currChunk = 0; currChunk < chunkNo; ++currChunk) {
-                if (DigestFile.hasChunk(fileHash, currChunk)) continue;
-                GetChunkMsg msg = new GetChunkMsg(this.protocolVersion, this.id, fileHash, 0);
-                this.MCSock.send(msg);
+                if (!DigestFile.hasChunk(fileHash, currChunk)) {
+                    GetChunkMsg msg = new GetChunkMsg(this.protocolVersion, this.id, fileHash, 0);
+                    this.MCSock.send(msg);
+                }
             }
             return "Restored file " + filePath + " with hash " + fileHash + ".";
         } catch (Exception e) {
