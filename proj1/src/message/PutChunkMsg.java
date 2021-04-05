@@ -26,8 +26,8 @@ public class PutChunkMsg implements Message {
         this.fileId = fileId;
         this.chunkNo = chunkNo;
         this.senderId = id;
-        this.chunk = chunk;
         this.replication = replication;
+        this.chunk = chunk;
     }
     public PutChunkMsg(String version, String id, String fileId, int chunkNo, int replication, String filename) {
         this(version, id, fileId, chunkNo, replication, new byte[0]);
