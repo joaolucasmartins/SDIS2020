@@ -330,12 +330,12 @@ public class Proj1 implements TestInterface {
             }
         }
 
-        int maxStorageSizeB = DigestFile.state.getMaxDiskSpaceB();
+        int maxStorageSizeKB = DigestFile.state.getMaxDiskSpaceKB();
         return filesIInitiated
                 .append(chunksIStore)
                 .append("Storing ").append(Math.round(DigestFile.getStorageSize() / 1000.0))
                 .append("KB of a maximum of ")
-                .append(maxStorageSizeB < 0 ? "infinite " : maxStorageSizeB / 1000).append("KB.")
+                .append(maxStorageSizeKB < 0 ? "infinite " : maxStorageSizeKB).append("KB.")
                 .toString();
     }
 }

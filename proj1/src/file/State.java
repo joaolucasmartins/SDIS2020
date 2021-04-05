@@ -77,6 +77,10 @@ public class State implements Serializable {
         return maxDiskSpaceB;
     }
 
+    public synchronized Integer getMaxDiskSpaceKB() {
+        return maxDiskSpaceB < 0 ? -1 : maxDiskSpaceB / 1000;
+    }
+
     public synchronized void setMaxDiskSpaceB(Integer maxDiskSpaceB) {
         this.maxDiskSpaceB = maxDiskSpaceB;
     }
