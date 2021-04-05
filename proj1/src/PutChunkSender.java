@@ -8,7 +8,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class PutChunkSender extends MessageSender<PutChunkMsg> {
     private static final int MAX_RETRANSMIT = 5;
     private static final long COLLECTION_INTERVAL = 1000; // in ms
-    private Queue<Message> receivedMessages;
+    private final Queue<Message> receivedMessages;
     public PutChunkSender(SockThread sockThread, PutChunkMsg msg, MessageHandler handler) {
         super(sockThread, msg, handler);
         this.receivedMessages = new ConcurrentLinkedQueue<>();

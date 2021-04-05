@@ -1,6 +1,7 @@
 package message;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 import static java.lang.Integer.parseInt;
 
@@ -35,16 +36,10 @@ public class MessageCreator {
                         parseInt(header[Message.chunkField]));
                 break;
             case (ChunkMsg.type):
-                body = header[ChunkMsg.CRLFField];
-                System.out.println("Body" + body);
-                if (!containsCRLF(body)) {
-                    res = null;
-                    break; // TODO Throw new exception here?
-                }
                 res = new ChunkMsg(header[Message.versionField], header[Message.idField],
                         header[Message.fileField],
                         parseInt(header[Message.chunkField]),
-                        body.substring(5).getBytes(StandardCharsets.UTF_8));
+                        body.getBytes());
                 break;
             // File deletion Subprotocol
             case (DeleteMsg.type):

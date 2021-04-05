@@ -4,6 +4,7 @@ import message.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import static message.MessageCreator.createMessage;
 
@@ -25,7 +26,7 @@ public class MessageHandler {
         this.MCSock.setHandler(this);
         this.MDBSock.setHandler(this);
         this.MDRSock.setHandler(this);
-        this.observers = new ArrayList<>();
+        this.observers = new CopyOnWriteArrayList<>();
         DigestFile.importMap();
     }
 
@@ -76,7 +77,6 @@ public class MessageHandler {
         }
 
         try {
-            System.out.println("Received: " + Arrays.toString(header));
             Message response;
             switch (message.getType()) {
                 case PutChunkMsg.type:
@@ -126,9 +126,6 @@ public class MessageHandler {
                     }
                     break;
                 case ChunkMsg.type:
-                    ChunkMsg chunkMsg = (ChunkMsg) message;
-                    // TODO Check if we are expecting this chunk msg
-                    DigestFile.writeChunk(chunkMsg, chunkMsg.getFileId(), chunkMsg.getChunkNo());
                     break;
                 case RemovedMsg.type: // TODO Remove this
                     RemovedMsg removedMsg = (RemovedMsg) message;
@@ -154,9 +151,5 @@ public class MessageHandler {
             e.printStackTrace();
             System.err.println("Failed constructing reply for " + message.getType());
         }
-    }
-
-    private void sendPutChunk(String fileId, Integer chunkNo) {
-
     }
 }

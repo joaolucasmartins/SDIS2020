@@ -1,7 +1,5 @@
 import message.Message;
 
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class MessageSender<T extends Message> implements Runnable, Observer {

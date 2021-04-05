@@ -1,9 +1,8 @@
 import file.DigestFile;
-import message.PutChunkMsg;
-import message.GetChunkMsg;
-import message.RemovedMsg;
-import message.DeleteMsg;
+import message.*;
+import utils.Pair;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.*;
 import java.rmi.RemoteException;
@@ -72,18 +71,21 @@ public class Proj1 implements TestInterface {
     private void mainLoop() {
         this.MCSock.start();
         this.MDBSock.start();
-        this.MDBSock.start();
+        this.MDRSock.start();
         Scanner scanner = new Scanner(System.in);
         String cmd;
         do {
             cmd = scanner.nextLine();
             System.out.println("CMD: " + cmd);
-            if (cmd.equalsIgnoreCase("putchunk")) {
+            String filePath = "filename.txt";
+            if (cmd.equalsIgnoreCase("backup")) {
                 try {
-                    this.backup("filename.txt", 3);
+                    this.backup(filePath, 1);
                 } catch (RemoteException e) {
                     e.printStackTrace();
                 }
+            } else if (cmd.equalsIgnoreCase("drip")) {
+                this.MCSock.send(new ChunkMsg(this.protocolVersion, this.id, "c53428475b4a6add7d278d1d870f072e0b67374a59a5134e6a3a082fa8d9ad1e", 0));
             } else if (cmd.equalsIgnoreCase("reclaim")) {
                 try {
                     this.reclaim(0);
@@ -92,8 +94,22 @@ public class Proj1 implements TestInterface {
                 }
             } else if (cmd.equalsIgnoreCase("removed")) {
                 this.MCSock.send(new RemovedMsg(this.protocolVersion, this.id, "c1844545909fe089c87c73f089be8be3f7e27c40d63f4daab455a769b30cbbee", 0));
+            } else if (cmd.equalsIgnoreCase("restore")) {
+                try {
+                    System.out.println(this.restore(filePath));
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                }
+            } else if (cmd.equalsIgnoreCase("divide")) {
+                try {
+                    List<byte[]> chunks = DigestFile.divideFile(filePath, 3);
+                    for (int i=0; i<chunks.size(); ++i)
+                        DigestFile.writeChunk(DigestFile.getHash(filePath) + File.separator + i, chunks.get(i), chunks.get(i).length);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
-        } while (!cmd.equalsIgnoreCase("EXIT"));
+    } while (!cmd.equalsIgnoreCase("EXIT"));
 
         // shush threads
         this.MCSock.interrupt();
@@ -188,7 +204,7 @@ public class Proj1 implements TestInterface {
                 threads.add(t);
             }
 
-            for (Thread t : threads) {
+            for (Thread t : threads) { // TODO Falhar qd uma thread nao der store de um chunk?
                 t.join();
             }
         } catch (IOException | InterruptedException e) {
@@ -201,16 +217,31 @@ public class Proj1 implements TestInterface {
     @Override
     public String restore(String filePath) throws RemoteException {
         try {
+            List<Pair<Thread, GetChunkSender>> threads = new ArrayList<>();
             String fileHash = DigestFile.getHash(filePath);
             int chunkNo = DigestFile.getChunkCount(filePath); // TODO Esperar até o ultimo ter size 0 ou isto é 😎?
             if (chunkNo < 0) return "file " + filePath + " is too big";
+            byte[][] chunks = new byte[chunkNo][];
             // TODO repetir while replication != 0 (atencao se temos o chunk connosco ou nao (reclaim))
             for (int currChunk = 0; currChunk < chunkNo; ++currChunk) {
                 if (!DigestFile.hasChunk(fileHash, currChunk)) {
                     GetChunkMsg msg = new GetChunkMsg(this.protocolVersion, this.id, fileHash, 0);
-                    this.MCSock.send(msg);
-                }
+                    GetChunkSender chunkSender = new GetChunkSender(this.MCSock, msg, this.messageHandler);
+                    Thread t = new Thread(chunkSender);
+                    threads.add(new Pair<>(t, chunkSender));
+                    t.start();
+                } else
+                    chunks[currChunk] = DigestFile.readChunk(filePath, currChunk);
             }
+            for (var pair: threads) {
+                Thread t = pair.p1;
+                GetChunkSender sender = pair.p2;
+                t.join();
+                if (!sender.success.get())
+                    return "FAIL";
+                chunks[sender.message.getChunkNo()] = sender.getResponse().getChunk();
+            }
+            DigestFile.assembleFile(filePath + "1", Arrays.asList(chunks));
             return "Restored file " + filePath + " with hash " + fileHash + ".";
         } catch (Exception e) {
             e.printStackTrace();

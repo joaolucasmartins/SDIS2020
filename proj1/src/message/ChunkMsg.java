@@ -54,6 +54,10 @@ public class ChunkMsg implements Message {
         return chunkNo;
     }
 
+    public byte[] getChunk() {
+        return chunk;
+    }
+
     @Override
     public byte[] getContent() {
         byte[] headerBytes = header.getBytes();

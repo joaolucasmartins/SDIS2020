@@ -178,28 +178,14 @@ public class DigestFile {
     }
 
     /* reassemble a file from its chunks */
-    public static void assembleFile(String filename, String file_id) throws IOException {
-        byte[] b = new byte[MAX_CHUNK_SIZE];
-        int i = 0;
-        boolean done = false;
-
+    public static void assembleFile(String filename, List<byte[]> chunks) throws IOException {
         File f = new File(FILE_DIR + filename);
         f.getParentFile().mkdirs();
-        if (!f.createNewFile()) return;
+        f.createNewFile();
         FileOutputStream file = new FileOutputStream(f);
-        ;
 
-        while (!done) {
-            String chunkpath = FILE_DIR + file_id + File.separator + i;
-            try {
-                FileInputStream inputStream = new FileInputStream(chunkpath);
-                int n = inputStream.read(b);
-                file.write(b, 0, n);
-            } catch (FileNotFoundException e) {
-                done = true;
-            }
-            ++i;
-        }
+        for (byte[] chunk: chunks)
+            file.write(chunk, 0, chunk.length);
     }
 
     /* returns whether or not we have this chnk stored */
