@@ -20,7 +20,7 @@ public class MessageCreator {
                         header[Message.fileField],
                         parseInt(header[Message.chunkField]),
                         parseInt(header[Message.replicationField]),
-                        body.getBytes());
+                        body.getBytes(StandardCharsets.US_ASCII));
                 break;
             case (StoredMsg.type):
                 res = new StoredMsg(header[Message.versionField],
@@ -39,7 +39,7 @@ public class MessageCreator {
                 res = new ChunkMsg(header[Message.versionField], header[Message.idField],
                         header[Message.fileField],
                         parseInt(header[Message.chunkField]),
-                        body.getBytes());
+                        body.getBytes(StandardCharsets.US_ASCII));
                 break;
             // File deletion Subprotocol
             case (DeleteMsg.type):

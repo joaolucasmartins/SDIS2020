@@ -2,6 +2,7 @@ import message.Message;
 
 import java.io.IOException;
 import java.net.*;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class SockThread implements Runnable {
@@ -78,7 +79,7 @@ public class SockThread implements Runnable {
                 continue;
             }
 
-            String received = new String(packet.getData(), 0, packet.getLength());
+            String received = new String(packet.getData(), 0, packet.getLength(), StandardCharsets.US_ASCII);
             this.handler.handleMessage(this, received);
         }
     }

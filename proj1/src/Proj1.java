@@ -123,7 +123,16 @@ public class Proj1 implements TestInterface {
                     e.printStackTrace();
                 }
             } else if (cmd.equalsIgnoreCase("drip")) {
-                this.MCSock.send(new ChunkMsg(this.protocolVersion, this.id, "c53428475b4a6add7d278d1d870f072e0b67374a59a5134e6a3a082fa8d9ad1e", 0));
+                try {
+                    List<byte[]> chunks = DigestFile.divideFile(filePath, 0);
+                    for (int i=0; i<chunks.size(); ++i) {
+                        byte[] b = chunks.get(i);
+                        DigestFile.writeChunk("test/" + i, b, b.length);
+                        System.out.println(b.length);
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             } else if (cmd.equalsIgnoreCase("reclaim")) {
                 try {
                     this.reclaim(0);
@@ -220,7 +229,6 @@ public class Proj1 implements TestInterface {
             for (int i = 0; i < chunks.size(); ++i) {
                 // only backup chunks that don't have the desired replication degree
                 if (DigestFile.chunkIsOk(fileId, i)) continue;
-
                 PutChunkMsg putChunkMsg = new PutChunkMsg("1.0", this.id,
                         fileId, i, replicationDegree, chunks.get(i));
                 PutChunkSender putChunkSender = new PutChunkSender(this.MDBSock, putChunkMsg, this.messageHandler);
