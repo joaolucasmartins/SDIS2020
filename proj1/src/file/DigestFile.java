@@ -1,7 +1,6 @@
 package file;
 
 import message.Message;
-import utils.Pair;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -13,7 +12,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 public class DigestFile {
-    public static Map<String, Pair<Integer, Map<Integer, Integer>>> replicationDegMap;
+    public static ReplicationDegMap replicationDegMap;
     private final static Integer CHUNK_LEN = 256;
     private static final int MAX_CHUNK_SIZE = 64000;
     private static final int MAX_CHUNK_NUM = 999999;
@@ -80,7 +79,7 @@ public class DigestFile {
         File fileDir = new File(FILE_DIR + File.separator + fileId);
         if (fileDir.listFiles() == null) return;
 
-        DigestFile.replicationDegMap.remove(fileId);  // TODO check if working correctly
+        replicationDegMap.removeFileEntry(fileId);  // TODO check if working correctly
 
         // to delete a directory, the directory must be empty
         for (File f : Objects.requireNonNull(fileDir.listFiles())) {
@@ -152,7 +151,7 @@ public class DigestFile {
     }
 
     /* divide a file into chunks */
-    public static List<byte[]> divideFile(String filename, Integer replicationDegree) throws IOException {
+    public static List<byte[]> divideFile(String filename, int replicationDegree) throws IOException {
         List<byte[]> ret = new ArrayList<>();
 
         String fileId = getHash(filename);
@@ -160,24 +159,19 @@ public class DigestFile {
         byte[] b = new byte[MAX_CHUNK_SIZE];
         int n, i = 0;
 
-        Map<Integer, Integer> degMap;
-        if (replicationDegMap.containsKey(fileId))
-            degMap = replicationDegMap.get(fileId).p2;
-        else
-            degMap = new HashMap<>();
-
         if (surpassesMaxChunks(filename))
             throw new MasNaoTeVouAlocar();
 
+        replicationDegMap.addFileEntry(fileId, true, replicationDegree);
+
         while ((n = inputFile.read(b, 0, MAX_CHUNK_SIZE)) >= MAX_CHUNK_SIZE) {
             ret.add(Arrays.copyOfRange(b, 0, n));
-            if (!degMap.containsKey(i)) degMap.put(i, 0);
+            replicationDegMap.declareChunk(fileId, i);  // only declares if it isn't declared yet
             ++i;
         }
 
-        DigestFile.replicationDegMap.put(fileId, new Pair<>(replicationDegree, degMap));
         // end chunk
-        if (!degMap.containsKey(i)) degMap.put(i, 0);
+        replicationDegMap.declareChunk(fileId, i);  // only declares if it isn't declared yet
         ret.add(Arrays.copyOfRange(b, 0, n));
 
         return ret;
@@ -235,84 +229,35 @@ public class DigestFile {
     }
 
     public static void importMap() {
-        Scanner scanner;
         try {
-            scanner = new Scanner(new File(FILE_DIR + File.separator + REPMAPNAME));
-        } catch (FileNotFoundException e) {
-            DigestFile.replicationDegMap = new HashMap<>();
-            return;
+            FileInputStream fileIn = new FileInputStream(FILE_DIR + File.separator + REPMAPNAME);
+            ObjectInputStream in = new ObjectInputStream(fileIn);
+            DigestFile.replicationDegMap = (ReplicationDegMap) in.readObject();
+            in.close();
+            fileIn.close();
+        } catch (IOException | ClassNotFoundException i) {
+            DigestFile.replicationDegMap = new ReplicationDegMap();
         }
-        String line, previousHash = "";
-        Integer fileRepDegree = -1;
-        Map<Integer, Integer> chunkMap = new HashMap<>();
-        Map<String, Pair<Integer, Map<Integer, Integer>>> fileMap = new HashMap<>();
-        while (scanner.hasNextLine()) {
-            line = scanner.nextLine();
-            String[] contents = line.split(" ");
-            String hash = contents[0];
-            Integer chunkNo = Integer.valueOf(contents[2]),
-                    perceivedRepDeg = Integer.valueOf(contents[3]);
-            if (!previousHash.equals(hash) && !previousHash.equals("")) { // New hash, commit to fileMap
-                fileMap.put(previousHash, new Pair<>(fileRepDegree, chunkMap));
-                chunkMap = new HashMap<>(); // Reset chunk map
-                chunkMap.put(chunkNo, perceivedRepDeg);
-            } else {
-                chunkMap.put(chunkNo, perceivedRepDeg);
-            }
-            fileRepDegree = Integer.valueOf(contents[1]);
-            previousHash = hash;
-        }
-        fileMap.put(previousHash, new Pair<>(fileRepDegree, chunkMap));
-        DigestFile.replicationDegMap = fileMap;
     }
 
     public static void exportMap() throws IOException {
-        Map<String, Pair<Integer, Map<Integer, Integer>>> map = DigestFile.replicationDegMap;
-        BufferedWriter wr = new BufferedWriter(new FileWriter(FILE_DIR + File.separator + REPMAPNAME));
-
-        for (String hash : map.keySet()) {
-            Pair<Integer, Map<Integer, Integer>> pair = map.get(hash);
-            Integer repDeg = pair.p1;
-            Map<Integer, Integer> chunkMap = pair.p2;
-            for (Integer chunkNo : chunkMap.keySet()) {
-                Integer perceviedDeg = chunkMap.get(chunkNo);
-                wr.write(hash + " " + repDeg + " " + chunkNo + " " + perceviedDeg);
-                wr.newLine();
-            }
+        try {
+            FileOutputStream fileOut = new FileOutputStream(FILE_DIR + File.separator + REPMAPNAME);
+            ObjectOutputStream out = new ObjectOutputStream(fileOut);
+            out.writeObject(DigestFile.replicationDegMap);
+            out.close();
+            fileOut.close();
+        } catch (IOException i) {
+            i.printStackTrace();
         }
-        wr.close();
-    }
-
-    public static void addFileEntry(String fileId, Integer repDegree) {
-        DigestFile.replicationDegMap.put(fileId, new Pair<>(repDegree, new HashMap<>()));
-    }
-
-    public static void incrementChunkDeg(String fileId, Integer chunkNo) {
-        Map<Integer, Integer> map = DigestFile.replicationDegMap.get(fileId).p2;
-        if (map.containsKey(chunkNo))
-            map.replace(chunkNo, map.get(chunkNo) + 1);
-        else
-            map.put(chunkNo, 1);
-    }
-
-    public static void decreaseChunkDeg(String fileId, Integer chunkNo) {
-        if (!replicationDegMap.containsKey(fileId)) return;
-        Map<Integer, Integer> map = DigestFile.replicationDegMap.get(fileId).p2;
-        if (map.containsKey(chunkNo) && map.get(chunkNo) > 0)
-            map.replace(chunkNo, map.get(chunkNo) - 1);
-    }
-
-    public static Integer getChunkDeg(String fileId, Integer chunkNo) {
-        Map<Integer, Integer> map = DigestFile.replicationDegMap.get(fileId).p2;
-        return map.get(chunkNo);
     }
 
     public static boolean chunkIsOk(String fileId, int chunkNo) {
-        if (!replicationDegMap.containsKey(fileId)) return false;
-        var p = DigestFile.replicationDegMap.get(fileId);
+        ReplicationDegMap.FileInfo p = replicationDegMap.getFileInfo(fileId);
+        if (p == null) return false;
 
-        Integer desiredRepDeg = p.p1;
-        Map<Integer, Integer> chunkInfo = p.p2;
+        int desiredRepDeg = p.getDesiredRep();
+        Map<Integer, Integer> chunkInfo = p.getAllChunks();
 
         if (!chunkInfo.containsKey(chunkNo)) return false;
         return desiredRepDeg <= chunkInfo.get(chunkNo);
@@ -320,9 +265,9 @@ public class DigestFile {
 
     public static List<Integer> getChunksBellowRep(String fileId) {
         List<Integer> res = new ArrayList<>();
-        Pair<Integer, Map<Integer, Integer>> p = DigestFile.replicationDegMap.get(fileId);
-        Integer desiredRepDeg = p.p1;
-        Map<Integer, Integer> map = p.p2;
+        ReplicationDegMap.FileInfo fileInfo = DigestFile.replicationDegMap.getFileInfo(fileId);
+        Integer desiredRepDeg = fileInfo.getDesiredRep();
+        Map<Integer, Integer> map = fileInfo.getAllChunks();
         for (Integer key : map.keySet()) {
             if (map.get(key) < desiredRepDeg)
                 res.add(key);

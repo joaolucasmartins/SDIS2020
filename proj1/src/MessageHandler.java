@@ -93,9 +93,8 @@ public class MessageHandler {
                         e.printStackTrace();
                         return;
                     }
-                    if (!DigestFile.replicationDegMap.containsKey(backupMsg.getFileId()))
-                        DigestFile.addFileEntry(backupMsg.getFileId(), backupMsg.getReplication());
-                    DigestFile.incrementChunkDeg(backupMsg.getFileId(), backupMsg.getChunkNo());
+                    DigestFile.replicationDegMap.addFileEntry(backupMsg.getFileId(), false, backupMsg.getReplication());
+                    DigestFile.replicationDegMap.incrementChunkDeg(backupMsg.getFileId(), backupMsg.getChunkNo());
                     // send STORED reply message
                     response = new StoredMsg(this.protocolVersion, this.selfID,
                             backupMsg.getFileId(), backupMsg.getChunkNo());
@@ -107,7 +106,7 @@ public class MessageHandler {
                     break;
                 case StoredMsg.type:
                     StoredMsg storedMsg = (StoredMsg) message;
-                    DigestFile.incrementChunkDeg(storedMsg.getFileId(), storedMsg.getChunkNo());
+                    DigestFile.replicationDegMap.incrementChunkDeg(storedMsg.getFileId(), storedMsg.getChunkNo());
                     break;
                 case DeleteMsg.type:
                     DeleteMsg delMsg = (DeleteMsg) message;
@@ -131,13 +130,13 @@ public class MessageHandler {
                     // TODO Check if we are expecting this chunk msg
                     DigestFile.writeChunk(chunkMsg, chunkMsg.getFileId(), chunkMsg.getChunkNo());
                     break;
-                case RemovedMsg.type: //TODO Remove this
+                case RemovedMsg.type: // TODO Remove this
                     RemovedMsg removedMsg = (RemovedMsg) message;
-                    DigestFile.decreaseChunkDeg(removedMsg.getFileId(), removedMsg.getChunkNo());
+                    DigestFile.replicationDegMap.decrementChunkDeg(removedMsg.getFileId(), removedMsg.getChunkNo());
                     if (DigestFile.hasChunk(removedMsg.getFileId(), removedMsg.getChunkNo()) &&
                             !DigestFile.chunkIsOk(removedMsg.getFileId(), removedMsg.getChunkNo())) {
 
-                        int repDegree = DigestFile.getChunkDeg(removedMsg.getFileId(), removedMsg.getChunkNo());
+                        int repDegree = DigestFile.replicationDegMap.getChunkDeg(removedMsg.getFileId(), removedMsg.getChunkNo());
                         byte[] chunk = DigestFile.readChunk(removedMsg.getFileId(), removedMsg.getChunkNo());
                         PutChunkMsg putChunkMsg = new PutChunkMsg(this.protocolVersion, this.selfID,
                                 removedMsg.getFileId(), removedMsg.getChunkNo(), repDegree, chunk);

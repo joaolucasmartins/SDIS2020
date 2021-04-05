@@ -241,16 +241,16 @@ public class Proj1 implements TestInterface {
 
         long currentCap = capactityToTrim;
 
-        for (var entry : DigestFile.replicationDegMap.entrySet()) {
+        for (var entry : DigestFile.replicationDegMap.getAllFilesInfo().entrySet()) {
             String fileId = entry.getKey();
             // int desiredRep = entry.getValue().p1;
 
-            for (var chunkEntry : entry.getValue().p2.entrySet()) {
+            for (var chunkEntry : entry.getValue().getAllChunks().entrySet()) {
                 int chunkNo = chunkEntry.getKey();
                 int currRepl = chunkEntry.getValue();
                 if (DigestFile.hasChunk(fileId, chunkNo) && (force || currRepl > 1) && currRepl > 0) {
                     DigestFile.deleteChunk(fileId, chunkNo);
-                    DigestFile.decreaseChunkDeg(fileId, chunkNo);
+                    DigestFile.replicationDegMap.decrementChunkDeg(fileId, chunkNo);
                     currentCap -= DigestFile.getChunkSize(fileId, chunkNo);
 
                     RemovedMsg removedMsg = new RemovedMsg(this.protocolVersion, this.id, fileId, chunkNo);
