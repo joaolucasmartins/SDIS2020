@@ -66,23 +66,47 @@ public class State implements Serializable {
     }
 
     private final ConcurrentMap<String, FileInfo> replicationMap;
-    private volatile Integer maxDiskSpaceB;
+    private volatile Long maxDiskSpaceB;
+    private volatile transient long filledStorageSizeB;
 
     public State() {
         this.replicationMap = new ConcurrentHashMap<>();
-        this.maxDiskSpaceB = -1;
+        this.maxDiskSpaceB = -1L;
     }
 
-    public synchronized Integer getMaxDiskSpaceB() {
+    // STORAGE
+    public synchronized Long getMaxDiskSpaceB() {
         return maxDiskSpaceB;
     }
 
-    public synchronized Integer getMaxDiskSpaceKB() {
+    public synchronized Long getMaxDiskSpaceKB() {
         return maxDiskSpaceB < 0 ? -1 : maxDiskSpaceB / 1000;
     }
 
-    public synchronized void setMaxDiskSpaceB(Integer maxDiskSpaceB) {
+    public synchronized void setMaxDiskSpaceB(Long maxDiskSpaceB) {
         this.maxDiskSpaceB = maxDiskSpaceB;
+    }
+
+    public synchronized void initFilledStorage() {
+        this.filledStorageSizeB = DigestFile.getStorageSizea();
+    }
+
+    public synchronized long getFilledStorageB() {
+        return this.filledStorageSizeB;
+    }
+
+    public synchronized boolean updateStorageSize(long sizeToAddB) {
+        if (filledStorageSizeB < 0) return true;
+
+        if (filledStorageSizeB + sizeToAddB < DigestFile.state.getMaxDiskSpaceKB()) {
+            filledStorageSizeB += sizeToAddB;
+            return true;
+        }
+        return false;
+    }
+
+    public synchronized boolean isStorageFull() {
+        return this.maxDiskSpaceB < 0 || (this.filledStorageSizeB < this.maxDiskSpaceB);
     }
 
     public FileInfo getFileInfo(String fileId) {

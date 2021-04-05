@@ -27,7 +27,6 @@ public class MessageHandler {
         this.MDBSock.setHandler(this);
         this.MDRSock.setHandler(this);
         this.observers = new CopyOnWriteArrayList<>();
-        DigestFile.importMap();
     }
 
     public void addObserver(Observer obs) {
@@ -44,11 +43,6 @@ public class MessageHandler {
         } catch (IOException e) {
             e.printStackTrace(); // TODO handle this?
         }
-    }
-
-    private boolean hasSpace(int newSize) {
-        return DigestFile.state.getMaxDiskSpaceB() < 0 ||
-                (DigestFile.getStorageSize() + newSize <= DigestFile.state.getMaxDiskSpaceB());
     }
 
     public void handleMessage(SockThread sock, String received) {
@@ -84,13 +78,14 @@ public class MessageHandler {
                     // do not store duplicated chunks
                     if (DigestFile.hasChunk(backupMsg.getFileId(), backupMsg.getChunkNo())) break;
                     // if we surpass storage space
-                    if (!this.hasSpace(backupMsg.getChunk().length)) break;
+                    if (!DigestFile.state.updateStorageSize(backupMsg.getChunk().length)) break;
 
                     try {
                         DigestFile.writeChunk(backupMsg.getFileId() + File.separator + backupMsg.getChunkNo(),
                                 backupMsg.getChunk(), backupMsg.getChunk().length);
                     } catch (IOException e) {
                         e.printStackTrace();
+                        DigestFile.state.updateStorageSize(-backupMsg.getChunk().length);
                         return;
                     }
                     DigestFile.state.addFileEntry(backupMsg.getFileId(), backupMsg.getReplication());
@@ -102,7 +97,7 @@ public class MessageHandler {
                     StoredSender storedSender = new StoredSender(this.MCSock, (StoredMsg) response, this);
                     storedSender.run(); // TODO make this part of thread pool
                     // unsub MDB when storage is full
-                    if (DigestFile.getStorageSize() == DigestFile.state.getMaxDiskSpaceB()) this.MDBSock.leave();
+                    if (DigestFile.state.isStorageFull()) this.MDBSock.leave();
                     break;
                 case StoredMsg.type:
                     StoredMsg storedMsg = (StoredMsg) message;
@@ -113,7 +108,7 @@ public class MessageHandler {
                     DigestFile.deleteFile(delMsg.getFileId());
 
                     // sub MDB when storage is not full
-                    if (DigestFile.getStorageSize() < DigestFile.state.getMaxDiskSpaceB())
+                    if (!DigestFile.state.isStorageFull())
                         this.MDBSock.join();
                     return;  // IMP file deletion doesn't send a reply
                 case GetChunkMsg.type:

@@ -102,7 +102,7 @@ public class DigestFile {
         }
     }
 
-    public static long getStorageSize() {
+    public static long getStorageSizea() {
         long ret = 0;
         File fileDir = new File(FILE_DIR);
         if (fileDir.listFiles() == null) return ret;
@@ -193,25 +193,6 @@ public class DigestFile {
         File file = new File(FILE_DIR + hash +
                 File.separator + chunkNo);
         return file.exists();
-    }
-
-    public static void main(String[] args) {
-        //try {
-        //String filename = "filename.rar";
-        // String h = getHash(filename);
-        // divideFile(filename);
-
-        //     String id = "416ebf6f9e407ba10294e58cbcdc1ef55b0920cd6fd6255fe6767528ddf50aba";
-        //     assembleFile(filename, id);
-        // } catch (IOException e) {
-        //     e.printStackTrace();
-        // }
-        importMap();
-        try {
-            exportMap();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
     public static void importMap() {

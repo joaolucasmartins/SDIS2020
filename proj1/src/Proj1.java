@@ -41,7 +41,11 @@ public class Proj1 implements TestInterface {
         this.protocolVersion = args[0];
         this.id = args[1];
         // set the file dir name for the rest of the program (create it if missing)
+        // and get info
         DigestFile.setFileDir(this.id);
+        DigestFile.importMap();
+        DigestFile.state.initFilledStorage();
+
         this.accessPoint = args[2];
         // MC
         InetAddress MC = InetAddress.getByName(args[3]);
@@ -120,13 +124,13 @@ public class Proj1 implements TestInterface {
             } else if (cmd.equalsIgnoreCase("divide")) {
                 try {
                     List<byte[]> chunks = DigestFile.divideFile(filePath, 3);
-                    for (int i=0; i<chunks.size(); ++i)
+                    for (int i = 0; i < chunks.size(); ++i)
                         DigestFile.writeChunk(DigestFile.getHash(filePath) + File.separator + i, chunks.get(i), chunks.get(i).length);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
-    } while (!cmd.equalsIgnoreCase("EXIT"));
+        } while (!cmd.equalsIgnoreCase("EXIT"));
 
         // shush threads
         this.MCSock.interrupt();
@@ -237,7 +241,7 @@ public class Proj1 implements TestInterface {
                 } else
                     chunks[currChunk] = DigestFile.readChunk(filePath, currChunk);
             }
-            for (var pair: threads) {
+            for (var pair : threads) {
                 Thread t = pair.p1;
                 GetChunkSender sender = pair.p2;
                 t.join();
@@ -301,14 +305,14 @@ public class Proj1 implements TestInterface {
 
     @Override
     public String reclaim(int newMaxDiskSpaceKB) throws RemoteException { // TODO Adicionar isto aos ENHANCE
-        int newMaxDiskSpaceB = newMaxDiskSpaceKB * 1000;
+        long newMaxDiskSpaceB = newMaxDiskSpaceKB * 1000L;
 
         if (newMaxDiskSpaceB < 0) {
-            DigestFile.state.setMaxDiskSpaceB(-1);
+            DigestFile.state.setMaxDiskSpaceB(-1L);
             // infinite capacity => do nothing
             return "Max disk space set to infinite KBytes.";
         } else if (DigestFile.state.getMaxDiskSpaceB() >= 0) {
-            int capacityDelta = newMaxDiskSpaceB - DigestFile.state.getMaxDiskSpaceB();
+            long capacityDelta = newMaxDiskSpaceB - DigestFile.state.getMaxDiskSpaceB();
             DigestFile.state.setMaxDiskSpaceB(newMaxDiskSpaceB);
             // if max capacity is unchanged or increases, we don't need to do anything
             if (capacityDelta >= 0)
@@ -317,17 +321,15 @@ public class Proj1 implements TestInterface {
             DigestFile.state.setMaxDiskSpaceB(newMaxDiskSpaceB);
         }
 
-        long currentCap = DigestFile.getStorageSize() - DigestFile.state.getMaxDiskSpaceB();
+        long currentCap = DigestFile.state.getFilledStorageB() - DigestFile.state.getMaxDiskSpaceB();
         if (currentCap > 0) {
             // remove things (trying to keep everything above 0 replication degree)
             System.err.println("Removing: " + currentCap);
             currentCap = trimFiles(currentCap, false);
             if (currentCap > 0) trimFiles(currentCap, true);
 
-            if (DigestFile.getStorageSize() == DigestFile.state.getMaxDiskSpaceB())
-                this.MDBSock.leave();
-            else
-                this.MDBSock.join();
+            if (DigestFile.state.isStorageFull()) this.MDBSock.leave();
+            else this.MDBSock.join();
         }
 
         return "Max disk space set to " + newMaxDiskSpaceKB + " KBytes.";
@@ -366,10 +368,10 @@ public class Proj1 implements TestInterface {
             }
         }
 
-        int maxStorageSizeKB = DigestFile.state.getMaxDiskSpaceKB();
+        long maxStorageSizeKB = DigestFile.state.getMaxDiskSpaceKB();
         return filesIInitiated
                 .append(chunksIStore)
-                .append("Storing ").append(Math.round(DigestFile.getStorageSize() / 1000.0))
+                .append("Storing ").append(Math.round(DigestFile.state.getFilledStorageB() / 1000.0))
                 .append("KB of a maximum of ")
                 .append(maxStorageSizeKB < 0 ? "infinite " : maxStorageSizeKB).append("KB.")
                 .toString();
