@@ -13,7 +13,6 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
 
 public class Proj1 implements TestInterface {
-    public static int maxDiskSpaceB = -1;  // -1 means no limit
     // cmd line arguments
     private final String protocolVersion;
     private final String id;
@@ -94,7 +93,7 @@ public class Proj1 implements TestInterface {
             } else if (cmd.equalsIgnoreCase("removed")) {
                 this.MCSock.send(new RemovedMsg(this.protocolVersion, this.id, "c1844545909fe089c87c73f089be8be3f7e27c40d63f4daab455a769b30cbbee", 0));
             }
-    } while (!cmd.equalsIgnoreCase("EXIT"));
+        } while (!cmd.equalsIgnoreCase("EXIT"));
 
         // shush threads
         this.MCSock.interrupt();
@@ -242,7 +241,7 @@ public class Proj1 implements TestInterface {
 
         long currentCap = capactityToTrim;
 
-        for (var entry : DigestFile.replicationDegMap.getAllFilesInfo().entrySet()) {
+        for (var entry : DigestFile.state.getAllFilesInfo().entrySet()) {
             String fileId = entry.getKey();
             // int desiredRep = entry.getValue().p1;
 
@@ -251,7 +250,7 @@ public class Proj1 implements TestInterface {
                 int currRepl = chunkEntry.getValue();
                 if (DigestFile.hasChunk(fileId, chunkNo) && (force || currRepl > 1) && currRepl > 0) {
                     DigestFile.deleteChunk(fileId, chunkNo);
-                    DigestFile.replicationDegMap.decrementChunkDeg(fileId, chunkNo);
+                    DigestFile.state.decrementChunkDeg(fileId, chunkNo);
                     currentCap -= DigestFile.getChunkSize(fileId, chunkNo);
 
                     RemovedMsg removedMsg = new RemovedMsg(this.protocolVersion, this.id, fileId, chunkNo);
@@ -270,29 +269,31 @@ public class Proj1 implements TestInterface {
         int newMaxDiskSpaceB = newMaxDiskSpaceKB * 1000;
 
         if (newMaxDiskSpaceB < 0) {
-            Proj1.maxDiskSpaceB = -1;
+            DigestFile.state.setMaxDiskSpaceB(-1);
             // infinite capacity => do nothing
             return "Max disk space set to infinite KBytes.";
-        } else if (Proj1.maxDiskSpaceB >= 0) {
-            int capacityDelta = newMaxDiskSpaceB - Proj1.maxDiskSpaceB;
-            Proj1.maxDiskSpaceB = newMaxDiskSpaceB;
+        } else if (DigestFile.state.getMaxDiskSpaceB() >= 0) {
+            int capacityDelta = newMaxDiskSpaceB - DigestFile.state.getMaxDiskSpaceB();
+            DigestFile.state.setMaxDiskSpaceB(newMaxDiskSpaceB);
             // if max capacity is unchanged or increases, we don't need to do anything
             if (capacityDelta >= 0)
                 return "Max disk space set to " + newMaxDiskSpaceKB + " KBytes.";
         } else {
-            Proj1.maxDiskSpaceB = newMaxDiskSpaceB;
+            DigestFile.state.setMaxDiskSpaceB(newMaxDiskSpaceB);
         }
 
         // remove things (trying to keep everything above 0 replication degree)
-        long currentCap = DigestFile.getStorageSize() - Proj1.maxDiskSpaceB;
+        long currentCap = DigestFile.getStorageSize() - DigestFile.state.getMaxDiskSpaceB();
         System.err.println("Removing: " + currentCap);
         currentCap = trimFiles(currentCap, false);
         if (currentCap > 0) trimFiles(currentCap, true);
 
-        if (DigestFile.getStorageSize() == Proj1.maxDiskSpaceB) this.MDBSock.leave();
-        else this.MDBSock.join();
+        if (DigestFile.getStorageSize() == DigestFile.state.getMaxDiskSpaceB())
+            this.MDBSock.leave();
+        else
+            this.MDBSock.join();
 
-        return "reclaim";
+        return "Max disk space set to " + newMaxDiskSpaceKB + " KBytes.";
     }
 
     @Override
