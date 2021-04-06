@@ -1,19 +1,42 @@
 package message;
 
-public interface Message {
-    String CRLF = String.valueOf((char) 0xD) + String.valueOf((char) 0xA);
-    int versionField = 0;
-    int typeField = 1;
-    int idField = 2;
-    int fileField = 3;
-    int chunkField = 4;
-    int replicationField = 5;
+import java.nio.charset.StandardCharsets;
 
-    byte[] getContent();
+public abstract class Message {
+    public static final String type = "CHUNK";
+    public static String CRLF = String.valueOf((char) 0xD) + ((char) 0xA);
+    public static int versionField = 0;
+    public static int typeField = 1;
+    public static int idField = 2;
+    public static int fileField = 3;
+    public static int chunkField = 4;
+    public static int replicationField = 5;
 
-    String getType();
+    protected String header, version, id, fileId;
 
-    String getSenderId();
+    public Message(String version, String id, String fileId) {
+        this.header = version + " " +
+                type + " " +
+                id + " " +
+                fileId + " " +
+                Message.CRLF + Message.CRLF;
+        this.version = version;
+        this.id = id;
+        this.fileId = fileId;
+    }
 
-    int getHeaderLen();
+    public abstract String getType();
+    public abstract int getHeaderLen();
+
+    public String getFileId() {
+        return fileId;
+    }
+
+    public byte[] getContent() {
+        return header.getBytes();
+    }
+
+    String getSenderId() {
+        return this.id;
+    }
 }

@@ -21,7 +21,7 @@ public class GetChunkSender extends MessageSender<GetChunkMsg> {
     private boolean refersToSameChunk(Message message) {
         if (message.getType().equals(ChunkMsg.type)) {
             ChunkMsg chunkMsg = (ChunkMsg) message;
-            return chunkMsg.getChunkNo().equals(this.message.getChunkNo()) &&
+            return chunkMsg.getChunkNo() == this.message.getChunkNo() &&
                     chunkMsg.getFileId().equals(this.message.getFileId());
         }
         return false;

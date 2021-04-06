@@ -1,13 +1,12 @@
 package message;
 
-public class GetChunkMsg implements Message {
+public class GetChunkMsg extends Message {
     public static final String type = "GETCHUNK";
-    private final String header;
-    private final String senderId;
     private final String fileId;
     private final Integer chunkNo;
 
     public GetChunkMsg(String version, String id, String fileId, int chunkNo) {
+        super(version, id, fileId);
         this.header = version + " " +
                 type + " " +
                 id + " " +
@@ -15,7 +14,6 @@ public class GetChunkMsg implements Message {
                 chunkNo + " " +
                 Message.CRLF + Message.CRLF;
         this.fileId = fileId;
-        this.senderId = id;
         this.chunkNo = chunkNo;
     }
 
@@ -25,11 +23,6 @@ public class GetChunkMsg implements Message {
 
     public Integer getChunkNo() {
         return chunkNo;
-    }
-
-    @Override
-    public String getSenderId() {
-        return senderId;
     }
 
     @Override
