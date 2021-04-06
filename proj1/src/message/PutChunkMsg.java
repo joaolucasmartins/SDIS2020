@@ -79,6 +79,6 @@ public class PutChunkMsg implements Message {
 
     @Override
     public String toString() {
-        return type + " " + this.fileId + " chunkno. " + this.chunkNo;
+        return type + " " + this.fileId + " chunkno. " + this.chunkNo + " rep. " + this.replication;
     }
 }

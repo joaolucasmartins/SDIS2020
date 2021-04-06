@@ -116,7 +116,7 @@ public class Peer implements TestInterface {
             String filePath = "1b.txt";
             if (cmd.equalsIgnoreCase("backup")) {
                 try {
-                    this.backup(filePath, 1);
+                    this.backup(filePath, 2);
                 } catch (RemoteException e) {
                     e.printStackTrace();
                 }
@@ -310,6 +310,7 @@ public class Peer implements TestInterface {
         return currentCap;
     }
 
+    // TODO join/unjoin sempre (tratar dos returns
     @Override
     public String reclaim(int newMaxDiskSpaceKB) throws RemoteException { // TODO Adicionar isto aos ENHANCE
         long newMaxDiskSpaceB = newMaxDiskSpaceKB * 1000L;
