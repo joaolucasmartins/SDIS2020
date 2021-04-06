@@ -45,7 +45,7 @@ public class MessageHandler {
         }
     }
 
-    public void handleMessage(SockThread sock, byte[] receivedData) {
+    public void handleMessage(byte[] receivedData) {
         int crlfCount = 0;
         int headerCutoff;
         for (headerCutoff = 0; headerCutoff < receivedData.length - 1; ++headerCutoff) {

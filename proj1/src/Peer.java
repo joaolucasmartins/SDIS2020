@@ -18,7 +18,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
 public class Peer implements TestInterface {
-    private final ThreadPoolExecutor generalThreadPool;
     private final ThreadPoolExecutor backupThreadPool;
 
     private boolean closed = false;
@@ -43,7 +42,6 @@ public class Peer implements TestInterface {
         // parse args
         if (args.length != 9) usage();
 
-        this.generalThreadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(20);
         this.backupThreadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
 
         this.protocolVersion = args[0];
@@ -91,7 +89,6 @@ public class Peer implements TestInterface {
 
         // shutdown executors
         this.backupThreadPool.shutdown();
-        this.generalThreadPool.shutdown();
 
         // cleanup the access point
         if (registry != null) {

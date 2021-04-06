@@ -4,11 +4,14 @@ import java.io.IOException;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class SockThread implements Runnable {
     private Thread worker;
     private final AtomicBoolean running = new AtomicBoolean(false);
+    private final ThreadPoolExecutor threadPool;
 
     private boolean inGroup;
     private final MulticastSocket sock;
@@ -20,6 +23,7 @@ public class SockThread implements Runnable {
         this.sock = sock;
         this.group = group;
         this.port = port;
+        this.threadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
 
         this.inGroup = false;
         this.join();
@@ -51,6 +55,7 @@ public class SockThread implements Runnable {
 
     public void close() {
         this.leave();
+        this.threadPool.shutdown();
         this.sock.close();
     }
 
@@ -80,8 +85,13 @@ public class SockThread implements Runnable {
                 continue;
             }
 
-            this.handler.handleMessage(this,
-                    Arrays.copyOfRange(packet.getData(), 0, packet.getLength()));
+            this.threadPool.execute(
+                    new Runnable() {
+                        public void run() {
+                            handler.handleMessage(Arrays.copyOfRange(packet.getData(), 0, packet.getLength()));
+                        }
+                    }
+            );
         }
     }
 
