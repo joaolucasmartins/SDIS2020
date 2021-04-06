@@ -234,7 +234,7 @@ public class Peer implements TestInterface {
         try {
             List<Pair<Thread, GetChunkSender>> threads = new ArrayList<>();
             String fileHash = DigestFile.getHash(filePath);
-            int chunkNo = DigestFile.getChunkCount(filePath); // TODO Esperar até o ultimo ter size 0 ou isto é 😎?
+            int chunkNo = DigestFile.getChunkCount(filePath); // TODO Esperar até o ultimo ter size 0?
             if (chunkNo < 0) return "file " + filePath + " is too big";
             byte[][] chunks = new byte[chunkNo][];
             // TODO repetir while replication != 0 (atencao se temos o chunk connosco ou nao (reclaim))
