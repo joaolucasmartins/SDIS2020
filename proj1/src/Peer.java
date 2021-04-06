@@ -1,6 +1,7 @@
 import file.DigestFile;
+import state.FileInfo;
 import utils.Pair;
-import file.State;
+import state.State;
 import message.PutChunkMsg;
 import message.GetChunkMsg;
 import message.RemovedMsg;
@@ -49,8 +50,6 @@ public class Peer implements TestInterface {
         // set the file dir name for the rest of the program (create it if missing)
         // and get info
         DigestFile.setFileDir(this.id);
-        DigestFile.importMap();
-        DigestFile.state.initFilledStorage();
 
         this.accessPoint = args[2];
         // MC
@@ -212,7 +211,7 @@ public class Peer implements TestInterface {
             List<byte[]> chunks = DigestFile.divideFile(filePath, replicationDegree);
             for (int i = 0; i < chunks.size(); ++i) {
                 // only backup chunks that don't have the desired replication degree
-                if (DigestFile.chunkIsOk(fileId, i)) continue;
+                if (State.st.isChunkOk(fileId, i)) continue;
                 PutChunkMsg putChunkMsg = new PutChunkMsg("1.0", this.id,
                         fileId, i, replicationDegree, chunks.get(i));
                 PutChunkSender putChunkSender = new PutChunkSender(this.MDBSock, putChunkMsg, this.messageHandler);
@@ -242,8 +241,9 @@ public class Peer implements TestInterface {
                     Thread t = new Thread(chunkSender);
                     threads.add(new Pair<>(t, chunkSender));
                     t.start();
-                } else
+                } else {
                     chunks[currChunk] = DigestFile.readChunk(filePath, currChunk);
+                }
             }
             for (var pair : threads) {
                 Thread t = pair.p1;
@@ -268,13 +268,11 @@ public class Peer implements TestInterface {
             String fileHash = DigestFile.getHash(filePath);
             DeleteMsg msg = new DeleteMsg(this.protocolVersion, this.id, fileHash);
             this.MCSock.send(msg);
-            // TODO repetir while replication != 0 (atencao se temos o chunk connosco ou nao (reclaim))
             return "Deleted file " + filePath + " with hash " + fileHash + ".";
         } catch (IOException e) {
             e.printStackTrace();
-            throw new RemoteException();
+            throw new RemoteException("Deletion of " + filePath + " failed.");
         }
-        // return "Deletion of " + filePath + " failed.";
     }
 
     // force == true => ignore if the the replication degree becomes 0
@@ -284,17 +282,19 @@ public class Peer implements TestInterface {
 
         long currentCap = capactityToTrim;
 
-        for (var entry : DigestFile.state.getAllFilesInfo().entrySet()) {
+        for (var entry : State.st.getAllFilesInfo().entrySet()) {
             String fileId = entry.getKey();
             // int desiredRep = entry.getValue().p1;
 
             for (var chunkEntry : entry.getValue().getAllChunks().entrySet()) {
                 int chunkNo = chunkEntry.getKey();
-                int currRepl = chunkEntry.getValue();
-                if (DigestFile.hasChunk(fileId, chunkNo) && (force || currRepl > 1) && currRepl > 0) {
-                    DigestFile.deleteChunk(fileId, chunkNo);
-                    DigestFile.state.decrementChunkDeg(fileId, chunkNo);
-                    currentCap -= DigestFile.getChunkSize(fileId, chunkNo);
+                int perceivedRep = chunkEntry.getValue().p1;
+                boolean isStored = chunkEntry.getValue().p2;
+                if (isStored && (force || perceivedRep > 1) && perceivedRep > 0) {
+                    // if we have the chunk stored => delete it && decrement perceived rep.
+                    long chunkSize = DigestFile.deleteChunk(fileId, chunkNo); // updates state capacity
+                    State.st.decrementChunkDeg(fileId, chunkNo);
+                    currentCap -= chunkSize;
 
                     RemovedMsg removedMsg = new RemovedMsg(this.protocolVersion, this.id, fileId, chunkNo);
                     this.MCSock.send(removedMsg);
@@ -313,21 +313,21 @@ public class Peer implements TestInterface {
         boolean isDone = false;
 
         if (newMaxDiskSpaceB < 0) {
-            DigestFile.state.setMaxDiskSpaceB(-1L);
+            State.st.setMaxDiskSpaceB(-1L);
             // infinite capacity => do nothing
             isDone = true;
-        } else if (DigestFile.state.getMaxDiskSpaceB() >= 0) {
-            long capacityDelta = newMaxDiskSpaceB - DigestFile.state.getMaxDiskSpaceB();
-            DigestFile.state.setMaxDiskSpaceB(newMaxDiskSpaceB);
+        } else if (State.st.getMaxDiskSpaceB() >= 0) {
+            long capacityDelta = newMaxDiskSpaceB - State.st.getMaxDiskSpaceB();
+            State.st.setMaxDiskSpaceB(newMaxDiskSpaceB);
             // if max capacity is unchanged or increases, we don't need to do anything
             if (capacityDelta >= 0)
                 isDone = true;
         } else {
-            DigestFile.state.setMaxDiskSpaceB(newMaxDiskSpaceB);
+            State.st.setMaxDiskSpaceB(newMaxDiskSpaceB);
         }
 
         if (!isDone) {
-            long currentCap = DigestFile.state.getFilledStorageB() - DigestFile.state.getMaxDiskSpaceB();
+            long currentCap = State.st.getFilledStorageB() - State.st.getMaxDiskSpaceB();
             if (currentCap > 0) {
                 // remove things (trying to keep everything above 0 replication degree)
                 System.err.println("Removing: " + currentCap);
@@ -337,7 +337,7 @@ public class Peer implements TestInterface {
             }
         }
 
-        if (DigestFile.state.isStorageFull()) this.MDBSock.leave();
+        if (State.st.isStorageFull()) this.MDBSock.leave();
         else this.MDBSock.join();
 
         return "Max disk space set to " + (newMaxDiskSpaceKB < 0 ? "infinite" : newMaxDiskSpaceKB) + " KBytes.";
@@ -350,9 +350,9 @@ public class Peer implements TestInterface {
         StringBuilder chunksIStore = new StringBuilder();
         chunksIStore.append("Chunks I am storing:\n");
 
-        for (var entry : DigestFile.state.getAllFilesInfo().entrySet()) {
+        for (var entry : State.st.getAllFilesInfo().entrySet()) {
             String fileId = entry.getKey();
-            State.FileInfo fileInfo = entry.getValue();
+            FileInfo fileInfo = entry.getValue();
 
             if (fileInfo.isInitiator()) {
                 filesIInitiated.append("\tFile path: ").append(fileInfo.getFilePath()).append("\n");
@@ -366,7 +366,10 @@ public class Peer implements TestInterface {
             } else {
                 for (var chunkEntry : fileInfo.getAllChunks().entrySet()) {
                     int chunkId = chunkEntry.getKey();
-                    int perceivedRep = chunkEntry.getValue();
+                    int perceivedRep = chunkEntry.getValue().p1;
+                    boolean isStored = chunkEntry.getValue().p2;
+                    if (!isStored)  // only show chunks we are currently storing
+                        continue;
 
                     chunksIStore.append("\tChunk ID: ").append(fileId).append(" - ").append(chunkId).append("\n");
                     chunksIStore.append("\t\tSize: ").append(DigestFile.getChunkSize(fileId, chunkId)).append("\n");
@@ -376,10 +379,10 @@ public class Peer implements TestInterface {
             }
         }
 
-        long maxStorageSizeKB = DigestFile.state.getMaxDiskSpaceKB();
+        long maxStorageSizeKB = State.st.getMaxDiskSpaceKB();
         return filesIInitiated
                 .append(chunksIStore)
-                .append("Storing ").append(Math.round(DigestFile.state.getFilledStorageB() / 1000.0))
+                .append("Storing ").append(Math.round(State.st.getFilledStorageB() / 1000.0))
                 .append("KB of a maximum of ")
                 .append(maxStorageSizeKB < 0 ? "infinite " : maxStorageSizeKB).append("KB.")
                 .toString();

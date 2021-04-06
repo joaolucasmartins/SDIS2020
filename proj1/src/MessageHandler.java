@@ -1,5 +1,6 @@
 import file.DigestFile;
 import message.*;
+import state.State;
 
 import java.io.File;
 import java.io.IOException;
@@ -39,7 +40,7 @@ public class MessageHandler {
 
     public void saveMap() {
         try {
-            DigestFile.exportMap();
+            State.exportMap();
         } catch (IOException e) {
             e.printStackTrace(); // TODO handle this?
         }
@@ -87,25 +88,25 @@ public class MessageHandler {
                 case PutChunkMsg.type:
                     PutChunkMsg backupMsg = (PutChunkMsg) message;
                     // do not handle files we initiated the backup of
-                    if (DigestFile.state.isInitiator(backupMsg.getFileId())) break;
+                    if (State.st.isInitiator(backupMsg.getFileId())) break;
 
                     // always register the existence of this file
-                    DigestFile.state.addFileEntry(backupMsg.getFileId(), backupMsg.getReplication());
+                    State.st.addFileEntry(backupMsg.getFileId(), backupMsg.getReplication());
 
                     // do not store duplicated chunks
                     if (DigestFile.hasChunk(backupMsg.getFileId(), backupMsg.getChunkNo())) break;
                     // if we surpass storage space
-                    if (!DigestFile.state.updateStorageSize(backupMsg.getChunk().length)) break;
+                    if (!State.st.updateStorageSize(backupMsg.getChunk().length)) break;
 
                     try {
                         DigestFile.writeChunk(backupMsg.getFileId() + File.separator + backupMsg.getChunkNo(),
                                 backupMsg.getChunk(), backupMsg.getChunk().length);
                     } catch (IOException e) {
                         e.printStackTrace();
-                        DigestFile.state.updateStorageSize(-backupMsg.getChunk().length);
+                        State.st.updateStorageSize(-backupMsg.getChunk().length);
                         return;
                     }
-                    DigestFile.state.incrementChunkDeg(backupMsg.getFileId(), backupMsg.getChunkNo());
+                    State.st.incrementChunkDeg(backupMsg.getFileId(), backupMsg.getChunkNo());
                     // send STORED reply message
                     response = new StoredMsg(this.protocolVersion, this.selfID,
                             backupMsg.getFileId(), backupMsg.getChunkNo());
@@ -113,18 +114,20 @@ public class MessageHandler {
                     StoredSender storedSender = new StoredSender(this.MCSock, (StoredMsg) response, this);
                     storedSender.run(); // TODO make this part of thread pool
                     // unsub MDB when storage is full
-                    if (DigestFile.state.isStorageFull()) this.MDBSock.leave();
+                    if (State.st.isStorageFull()) this.MDBSock.leave();
                     break;
                 case StoredMsg.type:
                     StoredMsg storedMsg = (StoredMsg) message;
-                    DigestFile.state.incrementChunkDeg(storedMsg.getFileId(), storedMsg.getChunkNo());
+                    State.st.incrementChunkDeg(storedMsg.getFileId(), storedMsg.getChunkNo());
                     break;
                 case DeleteMsg.type:
                     DeleteMsg delMsg = (DeleteMsg) message;
+                    // delete the file on the file system
+                    // also updates state entry and space filled
                     DigestFile.deleteFile(delMsg.getFileId());
 
                     // sub MDB when storage is not full
-                    if (!DigestFile.state.isStorageFull())
+                    if (!State.st.isStorageFull())
                         this.MDBSock.join();
                     break;
                 case GetChunkMsg.type:
@@ -140,11 +143,11 @@ public class MessageHandler {
                     break;
                 case RemovedMsg.type:
                     RemovedMsg removedMsg = (RemovedMsg) message;
-                    DigestFile.state.decrementChunkDeg(removedMsg.getFileId(), removedMsg.getChunkNo());
+                    State.st.decrementChunkDeg(removedMsg.getFileId(), removedMsg.getChunkNo());
                     if (DigestFile.hasChunk(removedMsg.getFileId(), removedMsg.getChunkNo()) &&
                             !DigestFile.chunkIsOk(removedMsg.getFileId(), removedMsg.getChunkNo())) {
 
-                        int repDegree = DigestFile.state.getFileDeg(removedMsg.getFileId());
+                        int repDegree = State.st.getFileDeg(removedMsg.getFileId());
                         byte[] chunk = DigestFile.readChunk(removedMsg.getFileId() + File.separator + removedMsg.getChunkNo());
                         PutChunkMsg putChunkMsg = new PutChunkMsg(this.protocolVersion, this.selfID,
                                 removedMsg.getFileId(), removedMsg.getChunkNo(), repDegree, chunk);

@@ -1,77 +1,28 @@
-package file;
+package state;
 
-import java.io.Serializable;
+import file.DigestFile;
+
+import java.io.*;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+// this class is a singleton
 public class State implements Serializable {
-    public static class FileInfo implements Serializable {
-        private String filePath = null;  // only set if we are the initiator
-        private Integer desiredRep;
-        private final ConcurrentMap<Integer, Integer> chunkInfo;
-
-        public FileInfo(int desiredRep) {
-            this.desiredRep = desiredRep;
-            this.chunkInfo = new ConcurrentHashMap<>();
-        }
-
-        public FileInfo(String filePath, int desiredRep) {
-            this(desiredRep);
-            this.filePath = filePath;
-        }
-
-        public boolean isInitiator() {
-            return this.filePath != null;
-        }
-
-        public String getFilePath() {
-            return this.filePath;
-        }
-
-        public int getDesiredRep() {
-            return desiredRep;
-        }
-
-        public void setDesiredRep(int desiredRep) {
-            this.desiredRep = desiredRep;
-        }
-
-        public Map<Integer, Integer> getAllChunks() {
-            return this.chunkInfo;
-        }
-
-        public int getChunk(int chunkNo) {
-            return this.chunkInfo.get(chunkNo);
-        }
-
-        public void declareChunk(int chunkNo) {
-            if (!this.chunkInfo.containsKey(chunkNo))
-                this.chunkInfo.put(chunkNo, 0);
-        }
-
-        public void incrementChunkDeg(int chunkNo) {
-            if (this.chunkInfo.containsKey(chunkNo))
-                this.chunkInfo.replace(chunkNo, this.chunkInfo.get(chunkNo) + 1);
-            else
-                this.chunkInfo.put(chunkNo, 1);
-        }
-
-        public void decrementChunkDeg(int chunkNo) {
-            if (this.chunkInfo.containsKey(chunkNo) && this.chunkInfo.get(chunkNo) > 0)
-                this.chunkInfo.replace(chunkNo, this.chunkInfo.get(chunkNo) - 1);
-            else
-                this.chunkInfo.put(chunkNo, 0);
-        }
-    }
+    public static final String REPMAPNAME = "repMap.txt";
+    public static State st = State.importMap();
 
     private final ConcurrentMap<String, FileInfo> replicationMap;
     private volatile Long maxDiskSpaceB;
     private volatile transient long filledStorageSizeB;
 
-    public State() {
+    private State() {
         this.replicationMap = new ConcurrentHashMap<>();
         this.maxDiskSpaceB = -1L;
+    }
+
+    public static State getState() {
+        return st;
     }
 
     // STORAGE
@@ -112,13 +63,11 @@ public class State implements Serializable {
         return this.maxDiskSpaceB > 0 && (this.filledStorageSizeB < this.maxDiskSpaceB);
     }
 
-    public FileInfo getFileInfo(String fileId) {
-        if (!this.replicationMap.containsKey(fileId)) return null;
-        return this.replicationMap.get(fileId);
-    }
+    public boolean isChunkOk(String fileId, int chunkNo) {
+        int desiredRepDeg = State.st.getFileDeg(fileId);
+        int chunkDeg = State.st.getChunkDeg(fileId, chunkNo);
 
-    public Map<String, FileInfo> getAllFilesInfo() {
-        return this.replicationMap;
+        return chunkDeg >= desiredRepDeg;
     }
 
     public boolean isInitiator(String fileId) {
@@ -126,6 +75,7 @@ public class State implements Serializable {
         return this.replicationMap.get(fileId).isInitiator();
     }
 
+    // ADD
     public void addFileEntry(String fileId, String filePath, int desiredRep) {
         if (!this.replicationMap.containsKey(fileId)) {
             this.replicationMap.put(fileId, new FileInfo(filePath, desiredRep));
@@ -144,24 +94,29 @@ public class State implements Serializable {
         }
     }
 
-    // perceived chunk rep
-    public int getChunkDeg(String fileId, int chunkNo) {
-        if (!this.replicationMap.containsKey(fileId)) return 0;
-
-        return this.replicationMap.get(fileId).getChunk(chunkNo);
+    public void removeFileEntry(String fileId) {
+        this.replicationMap.remove(fileId);
     }
 
-    // file desired rep
+    public void declareChunk(String fileId, int chunkNo) {
+        // only declares if it isn't declared yet
+        if (!this.replicationMap.containsKey(fileId)) return;
+        this.replicationMap.get(fileId).declareChunk(chunkNo);
+    }
+
+    // REPLICATION DEGREE
     public int getFileDeg(String fileId) {
+        // file desired rep
         if (!this.replicationMap.containsKey(fileId)) return 0;
 
         return this.replicationMap.get(fileId).getDesiredRep();
     }
 
-    // only declares if it isn't declared yet
-    public void declareChunk(String fileId, int chunkNo) {
-        if (!this.replicationMap.containsKey(fileId)) return;
-        this.replicationMap.get(fileId).declareChunk(chunkNo);
+    public int getChunkDeg(String fileId, int chunkNo) {
+        // perceived chunk rep
+        if (!this.replicationMap.containsKey(fileId)) return 0;
+
+        return this.replicationMap.get(fileId).getChunkPerceivedRep(chunkNo);
     }
 
     public void incrementChunkDeg(String fileId, int chunkNo) {
@@ -174,7 +129,49 @@ public class State implements Serializable {
         this.replicationMap.get(fileId).decrementChunkDeg(chunkNo);
     }
 
-    public void removeFileEntry(String fileId) {
-        this.replicationMap.remove(fileId);
+    // OTHER
+    public boolean amIStoringChunk(String fileId, int chunkNo) {
+        if (!this.replicationMap.containsKey(fileId)) return false;
+        return this.replicationMap.get(fileId).amIStoringChunk(chunkNo);
+    }
+
+    // ITERATION
+    public FileInfo getFileInfo(String fileId) {
+        if (!this.replicationMap.containsKey(fileId)) return null;
+        return this.replicationMap.get(fileId);
+    }
+
+    public Map<String, FileInfo> getAllFilesInfo() {
+        return this.replicationMap;
+    }
+
+    // FOR SERIALIZATION
+    public static State importMap() {
+        State ret;
+        try {
+            FileInputStream fileIn = new FileInputStream(DigestFile.FILE_DIR + File.separator + REPMAPNAME);
+            ObjectInputStream in = new ObjectInputStream(fileIn);
+            ret = (State) in.readObject();
+            in.close();
+            fileIn.close();
+        } catch (IOException | ClassNotFoundException i) {
+            ret = new State();
+        }
+
+        ret.initFilledStorage();
+
+        return ret;
+    }
+
+    public static void exportMap() throws IOException {
+        try {
+            FileOutputStream fileOut = new FileOutputStream(DigestFile.FILE_DIR + File.separator + REPMAPNAME);
+            ObjectOutputStream out = new ObjectOutputStream(fileOut);
+            out.writeObject(State.st);
+            out.close();
+            fileOut.close();
+        } catch (IOException i) {
+            i.printStackTrace();
+        }
     }
 }

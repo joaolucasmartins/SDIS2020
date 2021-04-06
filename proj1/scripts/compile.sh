@@ -4,4 +4,4 @@ build_dir="build"
 src_dir="src"
 
 mkdir -p "$build_dir"
-javac -d "$build_dir" "$src_dir"/*.java "$src_dir"/file/*.java "$src_dir"/message/*.java "$src_dir"/utils/*.java
+javac -d "$build_dir" "$src_dir"/*.java "$src_dir"/file/*.java "$src_dir"/message/*.java "$src_dir"/state/*.java "$src_dir"/utils/*.java

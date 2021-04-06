@@ -28,15 +28,6 @@ public class ChunkMsg implements Message {
         this.senderId = id;
     }
 
-    public ChunkMsg(String version, String id, String fileId, int chunkNo, String filename) {
-        this(version, id, fileId, chunkNo, new byte[0]);
-        try {
-            this.chunk = DigestFile.readChunk(filename, chunkNo);
-        } catch (IOException e) {
-            e.printStackTrace(); // TODO Fail if chunk isn't here
-        }
-    }
-
     public ChunkMsg(String version, String id, String fileId, int chunkNo) {
         this(version, id, fileId, chunkNo, new byte[0]);
         try {

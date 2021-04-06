@@ -8,30 +8,30 @@ usage() {
 [ $# -lt 2 ] && usage
 
 case "$2" in
-BACKUP)
+backup | BACKUP)
 	if [ $# -ne 4 ]; then
 		echo "Usage: $0 <peer_ap> BACKUP <filename> <rep degree>"
 		exit 1
 	fi
 	;;
-RESTORE)
+restore | RESTORE)
 	if [ $# -ne 3 ]; then
 		echo "Usage: $0 <peer_app> RESTORE <filename>"
 	fi
 	;;
-DELETE)
+delete | DELETE)
 	if [ $# -ne 3 ]; then
 		echo "Usage: $0 <peer_app> DELETE <filename>"
 		exit 1
 	fi
 	;;
-RECLAIM)
+reclaim | RECLAIM)
 	if [ $# -ne 3 ]; then
 		echo "Usage: $0 <peer_app> RECLAIM <max space>"
 		exit 1
 	fi
 	;;
-STATE)
+state | STATE)
 	if [ $# -ne 2 ]; then
 		echo "Usage: $0 <peer_app> STATE"
 		exit 1

@@ -1,6 +1,6 @@
 package file;
 
-import message.Message;
+import state.State;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -12,12 +12,10 @@ import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 public class DigestFile {
-    public static State state;
     private final static Integer CHUNK_LEN = 256;
     private static final int MAX_CHUNK_SIZE = 64000;
     private static final int MAX_CHUNK_NUM = 999999;
-    private static String FILE_DIR = "." + File.separator + "files" + File.separator;
-    private static final String REPMAPNAME = "repMap.txt";
+    public static String FILE_DIR = "." + File.separator + "files" + File.separator;
 
     public static void setFileDir(String id) {
         FILE_DIR = "." + File.separator + ("files-" + id) + File.separator;
@@ -79,18 +77,28 @@ public class DigestFile {
         File fileDir = new File(FILE_DIR + File.separator + fileId);
         if (fileDir.listFiles() == null) return;
 
-        state.removeFileEntry(fileId);  // TODO check if working correctly
+        State.st.removeFileEntry(fileId);
 
         // to delete a directory, the directory must be empty
         for (File f : Objects.requireNonNull(fileDir.listFiles())) {
+            State.st.updateStorageSize(-f.length());
             f.delete();
         }
         fileDir.delete();
     }
 
-    public static void deleteChunk(String fileId, Integer chunkNo) {
+    public static long deleteChunk(String fileId, Integer chunkNo) {
         File chunk = new File(FILE_DIR + File.separator + fileId + File.separator + chunkNo.toString());
+        long chunkSize = chunk.length();
+        State.st.updateStorageSize(-chunkSize);
         chunk.delete();
+
+        // delete file dir if empty
+        File fileDir = new File(FILE_DIR + File.separator + fileId);
+        if (Objects.requireNonNull(fileDir.listFiles()).length == 0)
+            fileDir.delete();
+
+        return chunkSize;
     }
 
     public static long getChunkSize(String fileId, Integer chunkNo) {
@@ -133,11 +141,6 @@ public class DigestFile {
         }
     }
 
-    public static void writeChunk(Message message, String fileId, Integer chunkNo) throws IOException {
-        byte[] content = message.getContent();
-        writeChunk(fileId + File.separator + chunkNo, content, content.length);
-    }
-
     /* reads the contents of a chunk */
     public static byte[] readChunk(String chunkpath) throws IOException {
         FileInputStream inputFile = new FileInputStream(FILE_DIR + chunkpath);
@@ -160,7 +163,7 @@ public class DigestFile {
         long fileSize = new File(FILE_DIR + filename).length();
         FileInputStream inputStream = new FileInputStream(filePath);
 
-        state.addFileEntry(fileId, FILE_DIR + filename, replicationDegree);
+        State.st.addFileEntry(fileId, FILE_DIR + filename, replicationDegree);
 
         List<byte[]> ret = new ArrayList<>();
         int n, i = 0;
@@ -179,12 +182,12 @@ public class DigestFile {
 
             remainingSize -= chunkSize;
 
-            state.declareChunk(fileId, i++);  // only declares if it isn't declared yet
+            State.st.declareChunk(fileId, i++);  // only declares if it isn't declared yet
             ret.add(b);
         }
 
         if (fileSize % MAX_CHUNK_SIZE == 0) {
-            state.declareChunk(fileId, i);  // only declares if it isn't declared yet
+            State.st.declareChunk(fileId, i);  // only declares if it isn't declared yet
             ret.add(new byte[0]);
         }
 
@@ -202,53 +205,10 @@ public class DigestFile {
             file.write(chunk, 0, chunk.length);
     }
 
-    /* returns whether or not we have this chnk stored */
-    public static boolean hasChunk(String hash, Integer chunkNo) {
+    /* returns whether or not we have this chunk stored */
+    public static boolean hasChunkInFileSystem(String hash, Integer chunkNo) {
         File file = new File(FILE_DIR + hash +
                 File.separator + chunkNo);
         return file.exists();
-    }
-
-    public static void importMap() {
-        try {
-            FileInputStream fileIn = new FileInputStream(FILE_DIR + File.separator + REPMAPNAME);
-            ObjectInputStream in = new ObjectInputStream(fileIn);
-            DigestFile.state = (State) in.readObject();
-            in.close();
-            fileIn.close();
-        } catch (IOException | ClassNotFoundException i) {
-            DigestFile.state = new State();
-        }
-    }
-
-    public static void exportMap() throws IOException {
-        try {
-            FileOutputStream fileOut = new FileOutputStream(FILE_DIR + File.separator + REPMAPNAME);
-            ObjectOutputStream out = new ObjectOutputStream(fileOut);
-            out.writeObject(DigestFile.state);
-            out.close();
-            fileOut.close();
-        } catch (IOException i) {
-            i.printStackTrace();
-        }
-    }
-
-    public static boolean chunkIsOk(String fileId, int chunkNo) {
-        int desiredRepDeg = state.getFileDeg(fileId);
-        int chunkDeg = state.getChunkDeg(fileId, chunkNo);
-
-        return chunkDeg >= desiredRepDeg;
-    }
-
-    public static List<Integer> getChunksBellowRep(String fileId) {
-        List<Integer> res = new ArrayList<>();
-        State.FileInfo fileInfo = DigestFile.state.getFileInfo(fileId);
-        Integer desiredRepDeg = fileInfo.getDesiredRep();
-        Map<Integer, Integer> map = fileInfo.getAllChunks();
-        for (Integer key : map.keySet()) {
-            if (map.get(key) < desiredRepDeg)
-                res.add(key);
-        }
-        return res;
     }
 }

@@ -30,15 +30,6 @@ public class PutChunkMsg implements Message {
         this.chunk = chunk;
     }
 
-    public PutChunkMsg(String version, String id, String fileId, int chunkNo, int replication, String filename) {
-        this(version, id, fileId, chunkNo, replication, new byte[0]);
-        try {
-            this.chunk = DigestFile.readChunk(filename, chunkNo);
-        } catch (IOException e) {
-            e.printStackTrace(); // TODO Fail if chunk isn't here
-        }
-    }
-
     public String getFileId() {
         return fileId;
     }
