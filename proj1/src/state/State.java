@@ -135,6 +135,11 @@ public class State implements Serializable {
         return this.replicationMap.get(fileId).amIStoringChunk(chunkNo);
     }
 
+    public void setAmStoringChunk(String fileId, int chunkNo, boolean amStoring) {
+        if (!this.replicationMap.containsKey(fileId)) return;
+        this.replicationMap.get(fileId).setAmStoringChunk(chunkNo, amStoring);
+    }
+
     // ITERATION
     public FileInfo getFileInfo(String fileId) {
         if (!this.replicationMap.containsKey(fileId)) return null;

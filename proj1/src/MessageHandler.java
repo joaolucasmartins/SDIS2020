@@ -10,13 +10,12 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import static message.MessageCreator.createMessage;
 
 public class MessageHandler {
-    public final int maxBackofMs = 401;
     private final String selfID;
     private final String protocolVersion;
     private final SockThread MCSock;
     private final SockThread MDBSock;
     private final SockThread MDRSock;
-    private List<Observer> observers;
+    private final List<Observer> observers;
 
     public MessageHandler(String selfID, String protocolVersion, SockThread MCSock, SockThread MDBSock, SockThread MDRSock) {
         this.selfID = selfID;
@@ -67,7 +66,7 @@ public class MessageHandler {
         }
 
         // construct the reply
-        Message message = null;
+        Message message;
         try {
             message = createMessage(header, body);
         } catch (NoSuchMessage noSuchMessage) {
@@ -94,7 +93,7 @@ public class MessageHandler {
                     State.st.addFileEntry(backupMsg.getFileId(), backupMsg.getReplication());
 
                     // do not store duplicated chunks
-                    if (DigestFile.hasChunk(backupMsg.getFileId(), backupMsg.getChunkNo())) break;
+                    if (State.st.amIStoringChunk(backupMsg.getFileId(), backupMsg.getChunkNo())) break;
                     // if we surpass storage space
                     if (!State.st.updateStorageSize(backupMsg.getChunk().length)) break;
 
@@ -106,6 +105,7 @@ public class MessageHandler {
                         State.st.updateStorageSize(-backupMsg.getChunk().length);
                         return;
                     }
+                    State.st.setAmStoringChunk(backupMsg.getFileId(), backupMsg.getChunkNo(), true);
                     State.st.incrementChunkDeg(backupMsg.getFileId(), backupMsg.getChunkNo());
                     // send STORED reply message
                     response = new StoredMsg(this.protocolVersion, this.selfID,
@@ -132,7 +132,7 @@ public class MessageHandler {
                     break;
                 case GetChunkMsg.type:
                     GetChunkMsg getChunkMsg = (GetChunkMsg) message;
-                    if (DigestFile.hasChunk(getChunkMsg.getFileId(), getChunkMsg.getChunkNo())) {
+                    if (State.st.amIStoringChunk(getChunkMsg.getFileId(), getChunkMsg.getChunkNo())) {
                         response = new ChunkMsg(this.protocolVersion, this.selfID,
                                 getChunkMsg.getFileId(), getChunkMsg.getChunkNo());
                         ChunkSender chunkSender = new ChunkSender(this.MDRSock, (ChunkMsg) response, this);
@@ -144,8 +144,8 @@ public class MessageHandler {
                 case RemovedMsg.type:
                     RemovedMsg removedMsg = (RemovedMsg) message;
                     State.st.decrementChunkDeg(removedMsg.getFileId(), removedMsg.getChunkNo());
-                    if (DigestFile.hasChunk(removedMsg.getFileId(), removedMsg.getChunkNo()) &&
-                            !DigestFile.chunkIsOk(removedMsg.getFileId(), removedMsg.getChunkNo())) {
+                    if (State.st.amIStoringChunk(removedMsg.getFileId(), removedMsg.getChunkNo()) &&
+                            !State.st.isChunkOk(removedMsg.getFileId(), removedMsg.getChunkNo())) {
 
                         int repDegree = State.st.getFileDeg(removedMsg.getFileId());
                         byte[] chunk = DigestFile.readChunk(removedMsg.getFileId() + File.separator + removedMsg.getChunkNo());

@@ -16,10 +16,12 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 
 public class Peer implements TestInterface {
     private final ThreadPoolExecutor backupThreadPool;
+    private final ThreadPoolExecutor restoreThreadPool;
 
     private boolean closed = false;
     // cmd line arguments
@@ -44,6 +46,7 @@ public class Peer implements TestInterface {
         if (args.length != 9) usage();
 
         this.backupThreadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
+        this.restoreThreadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
 
         this.protocolVersion = args[0];
         this.id = args[1];
@@ -112,7 +115,7 @@ public class Peer implements TestInterface {
             String filePath = "1b.txt";
             if (cmd.equalsIgnoreCase("backup")) {
                 try {
-                    this.backup(filePath, 2);
+                    this.backup(filePath, 1);
                 } catch (RemoteException e) {
                     e.printStackTrace();
                 }
@@ -227,34 +230,32 @@ public class Peer implements TestInterface {
 
     @Override
     public String restore(String filePath) throws RemoteException {
+        // https://stackoverflow.com/questions/10934187/how-to-wait-for-a-threadpoolexecutor-to-finish
         try {
-            List<Pair<Thread, GetChunkSender>> threads = new ArrayList<>();
-            String fileHash = DigestFile.getHash(filePath);
+            List<Pair<Future<Object>, GetChunkSender>> threads = new ArrayList<>();
+            String fileId = DigestFile.getHash(filePath);
             int chunkNo = DigestFile.getChunkCount(filePath); // TODO Esperar até o ultimo ter size 0?
             if (chunkNo < 0) return "file " + filePath + " is too big";
             byte[][] chunks = new byte[chunkNo][];
-            // TODO repetir while replication != 0 (atencao se temos o chunk connosco ou nao (reclaim))
             for (int currChunk = 0; currChunk < chunkNo; ++currChunk) {
-                if (!DigestFile.hasChunk(fileHash, currChunk)) {
-                    GetChunkMsg msg = new GetChunkMsg(this.protocolVersion, this.id, fileHash, 0);
+                if (State.st.amIStoringChunk(fileId, currChunk)) {
+                    GetChunkMsg msg = new GetChunkMsg(this.protocolVersion, this.id, fileId, currChunk);
                     GetChunkSender chunkSender = new GetChunkSender(this.MCSock, msg, this.messageHandler);
-                    Thread t = new Thread(chunkSender);
-                    threads.add(new Pair<>(t, chunkSender));
-                    t.start();
+                    threads.add(new Pair<>(this.restoreThreadPool.submit(chunkSender, null), chunkSender));
                 } else {
                     chunks[currChunk] = DigestFile.readChunk(filePath, currChunk);
                 }
             }
-            for (var pair : threads) {
-                Thread t = pair.p1;
+
+            for (var pair: threads) {
+                Future<Object> promise = pair.p1;
                 GetChunkSender sender = pair.p2;
-                t.join();
-                if (!sender.success.get())
+                if (promise.get() != null || !sender.success.get())
                     return "FAIL";
                 chunks[sender.message.getChunkNo()] = sender.getResponse().getChunk();
             }
             DigestFile.assembleFile(filePath + "1", Arrays.asList(chunks));
-            return "Restored file " + filePath + " with hash " + fileHash + ".";
+            return "Restored file " + filePath + " with hash " + fileId + ".";
         } catch (Exception e) {
             e.printStackTrace();
             throw new RemoteException();

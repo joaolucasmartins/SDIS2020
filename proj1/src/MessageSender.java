@@ -6,12 +6,18 @@ public abstract class MessageSender<T extends Message> implements Runnable, Obse
     protected SockThread sockThread;
     protected T message;
     protected final AtomicBoolean success;
+    private final MessageHandler handler;
 
     public MessageSender(SockThread sockThread, T message, MessageHandler handler) {
         this.sockThread = sockThread;
         this.message = message;
         this.success = new AtomicBoolean(false);
-        handler.addObserver(this);
+        this.handler = handler;
+        this.handler.addObserver(this);
+    }
+
+    protected void xau() {
+        this.handler.rmObserver(this);
     }
 
     protected void send() {
