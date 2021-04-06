@@ -8,7 +8,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class SockThread implements Runnable {
-    private Thread worker;
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final ThreadPoolExecutor threadPool;
 
@@ -63,7 +62,7 @@ public class SockThread implements Runnable {
     }
 
     public void start() {
-        worker = new Thread(this);
+        Thread worker = new Thread(this);
         worker.start();
     }
 
@@ -85,11 +84,7 @@ public class SockThread implements Runnable {
             }
 
             this.threadPool.execute(
-                    new Runnable() {
-                        public void run() {
-                            handler.handleMessage(Arrays.copyOfRange(packet.getData(), 0, packet.getLength()));
-                        }
-                    }
+                    () -> handler.handleMessage(Arrays.copyOfRange(packet.getData(), 0, packet.getLength()))
             );
         }
     }
