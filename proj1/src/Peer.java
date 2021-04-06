@@ -84,17 +84,9 @@ public class Peer implements TestInterface {
         if (closed) return;
         closed = true;
 
-        this.MCSock.close();
-        this.MDBSock.close();
-        this.MDRSock.close();
-        try {
-            State.exportMap();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
         // shutdown executors
         this.backupThreadPool.shutdown();
+        this.restoreThreadPool.shutdown();
 
         // cleanup the access point
         if (registry != null) {
@@ -104,6 +96,15 @@ public class Peer implements TestInterface {
             } catch (Exception e) {
                 System.err.println("Failed to unregister our RMI service.");
             }
+        }
+
+        this.MCSock.close();
+        this.MDBSock.close();
+        this.MDRSock.close();
+        try {
+            State.exportMap();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
