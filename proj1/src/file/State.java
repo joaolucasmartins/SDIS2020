@@ -88,7 +88,7 @@ public class State implements Serializable {
     }
 
     public synchronized void initFilledStorage() {
-        this.filledStorageSizeB = DigestFile.getStorageSizea();
+        this.filledStorageSizeB = DigestFile.getStorageSize();
     }
 
     public synchronized long getFilledStorageB() {

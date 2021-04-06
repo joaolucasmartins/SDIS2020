@@ -43,7 +43,7 @@ public class PutChunkMsg implements Message {
         return fileId;
     }
 
-    public Integer getChunkNo() {
+    public int getChunkNo() {
         return chunkNo;
     }
 
@@ -51,7 +51,7 @@ public class PutChunkMsg implements Message {
         return this.chunk;
     }
 
-    public Integer getReplication() {
+    public int getReplication() {
         return replication;
     }
 
