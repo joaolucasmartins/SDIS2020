@@ -86,6 +86,9 @@ public class MessageHandler {
             switch (message.getType()) {
                 case PutChunkMsg.type:
                     PutChunkMsg backupMsg = (PutChunkMsg) message;
+                    // always register the existance of this file
+                    DigestFile.state.addFileEntry(backupMsg.getFileId(), backupMsg.getReplication());
+
                     // do not store duplicated chunks
                     if (DigestFile.hasChunk(backupMsg.getFileId(), backupMsg.getChunkNo())) break;
                     // if we surpass storage space
@@ -99,7 +102,6 @@ public class MessageHandler {
                         DigestFile.state.updateStorageSize(-backupMsg.getChunk().length);
                         return;
                     }
-                    DigestFile.state.addFileEntry(backupMsg.getFileId(), backupMsg.getReplication());
                     DigestFile.state.incrementChunkDeg(backupMsg.getFileId(), backupMsg.getChunkNo());
                     // send STORED reply message
                     response = new StoredMsg(this.protocolVersion, this.selfID,
