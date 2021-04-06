@@ -26,8 +26,10 @@ public class RemovedPutchunkSender extends MessageSender<PutChunkMsg> {
 
     @Override
     public void notify(Message message) {
-        if (refersToSamePutchunk(message))
+        if (refersToSamePutchunk(message)) {
             this.putchunkAlreadySent.set(true);
+            this.xau();
+        }
     }
 
     @Override

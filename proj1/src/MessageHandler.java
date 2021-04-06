@@ -38,14 +38,6 @@ public class MessageHandler {
         this.observers.remove(obs);
     }
 
-    public void saveMap() {
-        try {
-            State.exportMap();
-        } catch (IOException e) {
-            e.printStackTrace(); // TODO handle this?
-        }
-    }
-
     public void handleMessage(byte[] receivedData) {
         int crlfCount = 0;
         int headerCutoff;

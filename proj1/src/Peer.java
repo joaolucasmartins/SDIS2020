@@ -87,7 +87,11 @@ public class Peer implements TestInterface {
         this.MCSock.close();
         this.MDBSock.close();
         this.MDRSock.close();
-        this.messageHandler.saveMap();
+        try {
+            State.exportMap();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         // shutdown executors
         this.backupThreadPool.shutdown();

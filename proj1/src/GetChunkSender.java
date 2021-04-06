@@ -32,6 +32,7 @@ public class GetChunkSender extends MessageSender<GetChunkMsg> {
         if (refersToSameChunk(message)) {
             gotChunk = true;
             this.response = (ChunkMsg) message;
+            this.xau();
         }
     }
 

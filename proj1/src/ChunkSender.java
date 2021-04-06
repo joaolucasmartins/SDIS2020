@@ -13,8 +13,10 @@ public class ChunkSender extends MessageSender<ChunkMsg> {
 
     @Override
     public void notify(Message message) {
-        if (refersToSameChunk(message))
+        if (refersToSameChunk(message)) {
             chunkAlreadySent = true;
+            this.xau();
+        }
     }
 
     private boolean refersToSameChunk(Message message) {

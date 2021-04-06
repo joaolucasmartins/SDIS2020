@@ -29,6 +29,13 @@ public class PutChunkSender extends MessageSender<PutChunkMsg> {
     }
 
     @Override
+    public void notify(Message message) {
+        if (checkIfStored(message)) {
+            addMessage(message);
+        }
+    }
+
+    @Override
     public void run() {
         int storedCnt = 0;
         for (int i=0; i < MAX_RETRANSMIT; ++i) {
@@ -49,12 +56,7 @@ public class PutChunkSender extends MessageSender<PutChunkMsg> {
             }
         }
         this.success.set(false);
-    }
 
-    @Override
-    public void notify(Message message) {
-        if (checkIfStored(message)) {
-            addMessage(message);
-        }
+        this.xau();
     }
 }

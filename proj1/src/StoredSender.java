@@ -6,6 +6,7 @@ public class StoredSender extends MessageSender<StoredMsg> {
     private final static int MAX_TIMEOUT=400;
     public StoredSender(SockThread sockThread, StoredMsg message, MessageHandler handler) {
         super(sockThread, message, handler);
+        this.xau();
     }
 
     @Override
