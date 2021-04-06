@@ -33,6 +33,7 @@ public class MessageHandler {
         this.observers.add(obs);
     }
 
+    // TODO chamar depois dos notifys
     public void rmObserver(Observer obs) {
         this.observers.remove(obs);
     }
@@ -105,14 +106,16 @@ public class MessageHandler {
                         State.st.updateStorageSize(-backupMsg.getChunk().length);
                         return;
                     }
-                    State.st.setAmStoringChunk(backupMsg.getFileId(), backupMsg.getChunkNo(), true);
+                    State.st.declareChunk(backupMsg.getFileId(), backupMsg.getChunkNo());
                     State.st.incrementChunkDeg(backupMsg.getFileId(), backupMsg.getChunkNo());
+                    State.st.setAmStoringChunk(backupMsg.getFileId(), backupMsg.getChunkNo(), true);
+
                     // send STORED reply message
                     response = new StoredMsg(this.protocolVersion, this.selfID,
                             backupMsg.getFileId(), backupMsg.getChunkNo());
-
                     StoredSender storedSender = new StoredSender(this.MCSock, (StoredMsg) response, this);
                     storedSender.run(); // TODO make this part of thread pool
+
                     // unsub MDB when storage is full
                     if (State.st.isStorageFull()) this.MDBSock.leave();
                     break;

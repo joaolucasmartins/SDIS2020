@@ -91,6 +91,7 @@ public class DigestFile {
         File chunk = new File(FILE_DIR + File.separator + fileId + File.separator + chunkNo.toString());
         long chunkSize = chunk.length();
         State.st.updateStorageSize(-chunkSize);
+        System.err.println(chunkSize);
         chunk.delete();
 
         // delete file dir if empty

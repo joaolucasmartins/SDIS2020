@@ -47,6 +47,11 @@ public class State implements Serializable {
     }
 
     public synchronized boolean updateStorageSize(long sizeToAddB) {
+        if (sizeToAddB < 0) {
+            filledStorageSizeB += sizeToAddB;
+            return true;
+        }
+
         if (maxDiskSpaceB < 0) { // is infinite
             filledStorageSizeB += sizeToAddB;
             return true;

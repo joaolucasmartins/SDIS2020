@@ -295,6 +295,7 @@ public class Peer implements TestInterface {
                     // if we have the chunk stored => delete it && decrement perceived rep.
                     long chunkSize = DigestFile.deleteChunk(fileId, chunkNo); // updates state capacity
                     State.st.decrementChunkDeg(fileId, chunkNo);
+                    State.st.setAmStoringChunk(fileId, chunkNo, false);
                     currentCap -= chunkSize;
 
                     RemovedMsg removedMsg = new RemovedMsg(this.protocolVersion, this.id, fileId, chunkNo);
