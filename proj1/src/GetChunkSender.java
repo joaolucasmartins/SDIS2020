@@ -2,6 +2,8 @@ import message.ChunkMsg;
 import message.GetChunkMsg;
 import message.Message;
 
+import java.util.concurrent.Callable;
+
 public class GetChunkSender extends MessageSender<GetChunkMsg> {
     private static final int MAX_RETRANSMIT = 5;
     private static final long COLLECTION_INTERVAL = 1000; // in ms
