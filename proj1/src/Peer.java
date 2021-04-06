@@ -1,5 +1,4 @@
 import file.DigestFile;
-import message.*;
 import utils.Pair;
 import file.State;
 import message.PutChunkMsg;
@@ -18,7 +17,7 @@ import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
-public class Proj1 implements TestInterface {
+public class Peer implements TestInterface {
     private final ThreadPoolExecutor generalThreadPool;
     private final ThreadPoolExecutor backupThreadPool;
 
@@ -40,7 +39,7 @@ public class Proj1 implements TestInterface {
         return this.accessPoint;
     }
 
-    public Proj1(String[] args) throws IOException {
+    public Peer(String[] args) throws IOException {
         // parse args
         if (args.length != 9) usage();
 
@@ -171,9 +170,9 @@ public class Proj1 implements TestInterface {
 
     public static void main(String[] args) {
         // parse cmdline args
-        Proj1 prog = null;
+        Peer prog = null;
         try {
-            prog = new Proj1(args);
+            prog = new Peer(args);
         } catch (IOException e) {
             System.err.println("Couldn't initialize the program.");
             e.printStackTrace();
@@ -182,7 +181,7 @@ public class Proj1 implements TestInterface {
         assert prog != null;
 
         // trap sigint
-        Proj1 finalProg = prog;
+        Peer finalProg = prog;
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             System.err.println("Exiting gracefully..");
             finalProg.cleanup();
