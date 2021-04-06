@@ -86,10 +86,10 @@ public class MessageHandler {
             switch (message.getType()) {
                 case PutChunkMsg.type:
                     PutChunkMsg backupMsg = (PutChunkMsg) message;
-                    // do not handle files we intiated the backup of
+                    // do not handle files we initiated the backup of
                     if (DigestFile.state.isInitiator(backupMsg.getFileId())) break;
 
-                    // always register the existance of this file
+                    // always register the existence of this file
                     DigestFile.state.addFileEntry(backupMsg.getFileId(), backupMsg.getReplication());
 
                     // do not store duplicated chunks

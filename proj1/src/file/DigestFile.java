@@ -102,7 +102,7 @@ public class DigestFile {
         }
     }
 
-    public static long getStorageSizea() {
+    public static long getStorageSize() {
         long ret = 0;
         File fileDir = new File(FILE_DIR);
         if (fileDir.listFiles() == null) return ret;

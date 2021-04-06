@@ -310,37 +310,40 @@ public class Peer implements TestInterface {
         return currentCap;
     }
 
-    // TODO join/unjoin sempre (tratar dos returns
     @Override
     public String reclaim(int newMaxDiskSpaceKB) throws RemoteException { // TODO Adicionar isto aos ENHANCE
         long newMaxDiskSpaceB = newMaxDiskSpaceKB * 1000L;
+        boolean isDone = false;
 
         if (newMaxDiskSpaceB < 0) {
             DigestFile.state.setMaxDiskSpaceB(-1L);
             // infinite capacity => do nothing
-            return "Max disk space set to infinite KBytes.";
+            isDone = true;
         } else if (DigestFile.state.getMaxDiskSpaceB() >= 0) {
             long capacityDelta = newMaxDiskSpaceB - DigestFile.state.getMaxDiskSpaceB();
             DigestFile.state.setMaxDiskSpaceB(newMaxDiskSpaceB);
             // if max capacity is unchanged or increases, we don't need to do anything
             if (capacityDelta >= 0)
-                return "Max disk space set to " + newMaxDiskSpaceKB + " KBytes.";
+                isDone = true;
         } else {
             DigestFile.state.setMaxDiskSpaceB(newMaxDiskSpaceB);
         }
 
-        long currentCap = DigestFile.state.getFilledStorageB() - DigestFile.state.getMaxDiskSpaceB();
-        if (currentCap > 0) {
-            // remove things (trying to keep everything above 0 replication degree)
-            System.err.println("Removing: " + currentCap);
-            currentCap = trimFiles(currentCap, false);
-            if (currentCap > 0) trimFiles(currentCap, true);
+        if (!isDone) {
+            long currentCap = DigestFile.state.getFilledStorageB() - DigestFile.state.getMaxDiskSpaceB();
+            if (currentCap > 0) {
+                // remove things (trying to keep everything above 0 replication degree)
+                System.err.println("Removing: " + currentCap);
+                currentCap = trimFiles(currentCap, false);
+                if (currentCap > 0) trimFiles(currentCap, true);
 
-            if (DigestFile.state.isStorageFull()) this.MDBSock.leave();
-            else this.MDBSock.join();
+            }
         }
 
-        return "Max disk space set to " + newMaxDiskSpaceKB + " KBytes.";
+        if (DigestFile.state.isStorageFull()) this.MDBSock.leave();
+        else this.MDBSock.join();
+
+        return "Max disk space set to " + (newMaxDiskSpaceKB < 0 ? "infinite" : newMaxDiskSpaceKB) + " KBytes.";
     }
 
     @Override
