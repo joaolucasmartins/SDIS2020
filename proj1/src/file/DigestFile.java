@@ -234,14 +234,10 @@ public class DigestFile {
     }
 
     public static boolean chunkIsOk(String fileId, int chunkNo) {
-        State.FileInfo p = state.getFileInfo(fileId);
-        if (p == null) return false;
+        int desiredRepDeg = state.getFileDeg(fileId);
+        int chunkDeg = state.getChunkDeg(fileId, chunkNo);
 
-        int desiredRepDeg = p.getDesiredRep();
-        Map<Integer, Integer> chunkInfo = p.getAllChunks();
-
-        if (!chunkInfo.containsKey(chunkNo)) return false;
-        return desiredRepDeg <= chunkInfo.get(chunkNo);
+        return chunkDeg >= desiredRepDeg;
     }
 
     public static List<Integer> getChunksBellowRep(String fileId) {

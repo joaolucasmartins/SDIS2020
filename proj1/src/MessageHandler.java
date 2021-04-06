@@ -86,6 +86,9 @@ public class MessageHandler {
             switch (message.getType()) {
                 case PutChunkMsg.type:
                     PutChunkMsg backupMsg = (PutChunkMsg) message;
+                    // do not handle files we intiated the backup of
+                    if (DigestFile.state.isInitiator(backupMsg.getFileId())) break;
+
                     // always register the existance of this file
                     DigestFile.state.addFileEntry(backupMsg.getFileId(), backupMsg.getReplication());
 
@@ -123,7 +126,7 @@ public class MessageHandler {
                     // sub MDB when storage is not full
                     if (!DigestFile.state.isStorageFull())
                         this.MDBSock.join();
-                    return;  // IMP file deletion doesn't send a reply
+                    break;
                 case GetChunkMsg.type:
                     GetChunkMsg getChunkMsg = (GetChunkMsg) message;
                     if (DigestFile.hasChunk(getChunkMsg.getFileId(), getChunkMsg.getChunkNo())) {
@@ -135,21 +138,19 @@ public class MessageHandler {
                     break;
                 case ChunkMsg.type:
                     break;
-                case RemovedMsg.type: // TODO Remove this
+                case RemovedMsg.type:
                     RemovedMsg removedMsg = (RemovedMsg) message;
                     DigestFile.state.decrementChunkDeg(removedMsg.getFileId(), removedMsg.getChunkNo());
                     if (DigestFile.hasChunk(removedMsg.getFileId(), removedMsg.getChunkNo()) &&
                             !DigestFile.chunkIsOk(removedMsg.getFileId(), removedMsg.getChunkNo())) {
 
-                        int repDegree = DigestFile.state.getChunkDeg(removedMsg.getFileId(), removedMsg.getChunkNo());
-                        byte[] chunk = DigestFile.readChunk(removedMsg.getFileId(), removedMsg.getChunkNo());
+                        int repDegree = DigestFile.state.getFileDeg(removedMsg.getFileId());
+                        byte[] chunk = DigestFile.readChunk(removedMsg.getFileId() + File.separator + removedMsg.getChunkNo());
                         PutChunkMsg putChunkMsg = new PutChunkMsg(this.protocolVersion, this.selfID,
                                 removedMsg.getFileId(), removedMsg.getChunkNo(), repDegree, chunk);
                         RemovedPutchunkSender removedPutchunkSender = new RemovedPutchunkSender(this.MDBSock, putChunkMsg, this);
                         removedPutchunkSender.run();
                     }
-                    // TODO initiate the chunk backup subprotocol after random delay
-                    // TODO if during this time, we get a PUTCHUNK for this chunk => back off
                     break;
                 default:
                     // unreachable

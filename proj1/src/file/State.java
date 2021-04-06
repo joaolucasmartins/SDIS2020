@@ -96,7 +96,10 @@ public class State implements Serializable {
     }
 
     public synchronized boolean updateStorageSize(long sizeToAddB) {
-        if (maxDiskSpaceB < 0) return true;
+        if (maxDiskSpaceB < 0) { // is infinite
+            filledStorageSizeB += sizeToAddB;
+            return true;
+        }
 
         if (filledStorageSizeB + sizeToAddB < maxDiskSpaceB) {
             filledStorageSizeB += sizeToAddB;
@@ -110,12 +113,17 @@ public class State implements Serializable {
     }
 
     public FileInfo getFileInfo(String fileId) {
-        if (this.replicationMap.containsKey(fileId)) return null;
+        if (!this.replicationMap.containsKey(fileId)) return null;
         return this.replicationMap.get(fileId);
     }
 
     public Map<String, FileInfo> getAllFilesInfo() {
         return this.replicationMap;
+    }
+
+    public boolean isInitiator(String fileId) {
+        if (!this.replicationMap.containsKey(fileId)) return false;
+        return this.replicationMap.get(fileId).isInitiator();
     }
 
     public void addFileEntry(String fileId, String filePath, int desiredRep) {
@@ -136,10 +144,18 @@ public class State implements Serializable {
         }
     }
 
+    // perceived chunk rep
     public int getChunkDeg(String fileId, int chunkNo) {
         if (!this.replicationMap.containsKey(fileId)) return 0;
 
         return this.replicationMap.get(fileId).getChunk(chunkNo);
+    }
+
+    // file desired rep
+    public int getFileDeg(String fileId) {
+        if (!this.replicationMap.containsKey(fileId)) return 0;
+
+        return this.replicationMap.get(fileId).getDesiredRep();
     }
 
     // only declares if it isn't declared yet
