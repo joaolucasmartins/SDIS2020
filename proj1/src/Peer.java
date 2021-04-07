@@ -178,6 +178,7 @@ public class Peer implements TestInterface {
             finalProg.cleanup();
         }));
 
+        // TODO add to extras section
         // setup the access point
         TestInterface stub;
         try {
@@ -337,8 +338,10 @@ public class Peer implements TestInterface {
                 }
             }
 
-            if (State.st.isStorageFull()) this.MDBSock.leave();
-            else this.MDBSock.join();
+            if (this.protocolVersion.equals("2.0")) {
+                if (State.st.isStorageFull()) this.MDBSock.leave();
+                else this.MDBSock.join();
+            }
         }
 
         return "Max disk space set to " + (newMaxDiskSpaceKB < 0 ? "infinite" : newMaxDiskSpaceKB) + " KBytes.";
