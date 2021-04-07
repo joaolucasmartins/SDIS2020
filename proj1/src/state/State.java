@@ -1,7 +1,6 @@
 package state;
 
 import file.DigestFile;
-import utils.Pair;
 
 import java.io.*;
 import java.util.*;
