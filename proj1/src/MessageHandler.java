@@ -1,5 +1,6 @@
 import file.DigestFile;
 import message.*;
+import state.FileInfo;
 import state.State;
 
 import java.io.File;
@@ -74,6 +75,19 @@ public class MessageHandler {
         }
 
         // See if guy who sents the message has to remove
+        if (this.protocolVersion.equals("2.0")) {
+            Set<String> files = State.st.getFilesUndeletedByPeer(message.getSenderId());
+            if (files != null) {
+                for (String fileId: files) {
+                    DeleteMsg deleteMsg = new DeleteMsg(protocolVersion, selfID, fileId);
+                    this.MCSock.send(deleteMsg);
+                }
+                synchronized (State.st) {
+                    State.st.removeUndeletedFilesOfPeer(message.getSenderId());
+                }
+            }
+        }
+
 
         try {
             Message response;
@@ -128,6 +142,12 @@ public class MessageHandler {
                         // also updates state entry and space filled
                         DigestFile.deleteFile(delMsg.getFileId());
 
+                        if (this.protocolVersion.equals("2.0")) {
+                            response = new IDeletedMsg(this.protocolVersion, this.selfID, delMsg.getFileId());
+                            IDeletedSender iDeletedSender = new IDeletedSender(this.MCSock, (IDeletedMsg) response, this);
+                            iDeletedSender.run();
+                        }
+
                         // sub MDB when storage is not full
                         if (!State.st.isStorageFull())
                             this.MDBSock.join();
@@ -162,9 +182,24 @@ public class MessageHandler {
                             removedPutchunkSender.run();
                         }
 
-                        if (this.protocolVersion.equals("2.0") &&
-                            State.st.hasUndeletedPair(removedMsg.getSenderId(), removedMsg.getFileId()))
+                        if (this.protocolVersion.equals("2.0")) {
+                            if (State.st.hasUndeletedPair(removedMsg.getSenderId(), removedMsg.getFileId()))
                                 State.st.removeUndeletedPair(removedMsg.getSenderId(), removedMsg.getFileId());
+                            FileInfo fileInfo = State.st.getFileInfo(removedMsg.getFileId());
+                            if (fileInfo != null)
+                                fileInfo.removePerceivedFile(removedMsg.getChunkNo(), removedMsg.getFileId());
+                        }
+                    }
+                    break;
+                case IDeletedMsg.type:
+                    if (this.protocolVersion.equals("2.0")) {
+                        IDeletedMsg iDeletedMsg = (IDeletedMsg) message;
+                        synchronized (State.st) {
+                            State.st.removeUndeletedPair(iDeletedMsg.getSenderId(), iDeletedMsg.getFileId());
+                            FileInfo fileInfo = State.st.getFileInfo(iDeletedMsg.getFileId());
+                            if (fileInfo != null)
+                                fileInfo.removePerceivedFile(iDeletedMsg.getFileId());
+                        }
                     }
                     break;
                 default:

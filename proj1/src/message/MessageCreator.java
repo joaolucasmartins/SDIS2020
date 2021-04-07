@@ -47,6 +47,11 @@ public class MessageCreator {
                         header[Message.fileField],
                         parseInt(header[Message.chunkField]));
                 break;
+            case (IDeletedMsg.type):
+                res = new IDeletedMsg(header[Message.versionField],
+                        header[Message.idField],
+                        header[Message.fileField]);
+                break;
             default:
                 throw new NoSuchMessage(header[Message.typeField]);
         }

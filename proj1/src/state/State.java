@@ -156,6 +156,14 @@ public class State implements Serializable {
                 this.undeletedFilesByPeer.get(peerId).contains(fileId);
     }
 
+    public Set<String> getFilesUndeletedByPeer(String peerId) {
+        return this.undeletedFilesByPeer.get(peerId);
+    }
+
+    public void removeUndeletedFilesOfPeer(String peerId) {
+        this.undeletedFilesByPeer.remove(peerId);
+    }
+
     // OTHER
     public boolean amIStoringChunk(String fileId, int chunkNo) {
         if (!this.replicationMap.containsKey(fileId)) return false;

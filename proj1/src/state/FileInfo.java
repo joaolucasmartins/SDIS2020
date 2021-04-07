@@ -70,6 +70,16 @@ public class FileInfo implements Serializable {
         return res;
     }
 
+    public void removePerceivedFile(Integer chunkNo, String fileId) {
+        if (this.chunkInfo.containsKey(chunkNo))
+            this.chunkInfo.get(chunkNo).p1.remove(fileId);
+    }
+
+    public void removePerceivedFile(String fileId) {
+        for (Integer chunk: this.chunkInfo.keySet())
+            this.chunkInfo.get(chunk).p1.remove(fileId);
+    }
+
     public void incrementChunkDeg(int chunkNo, String peerId) {
         if (this.chunkInfo.containsKey(chunkNo)) {
             Pair<List<String>, Boolean> chunk = this.chunkInfo.get(chunkNo);
@@ -93,4 +103,5 @@ public class FileInfo implements Serializable {
     public Map<Integer, Pair<List<String>, Boolean>> getAllChunks() {
         return this.chunkInfo;
     }
+
 }

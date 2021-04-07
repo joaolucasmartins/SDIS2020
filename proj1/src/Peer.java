@@ -270,7 +270,10 @@ public class Peer implements TestInterface {
             this.MCSock.send(msg);
 
             if (this.protocolVersion.equals("2.0")) {
-                for (var peer : State.st.getFileInfo(filePath).getPeersStoringFile())
+                FileInfo fileInfo = State.st.getFileInfo(fileHash);
+                if (fileInfo == null)
+                    return "No information stored about file " + filePath + " with hash " + fileHash;
+                for (var peer : fileInfo.getPeersStoringFile())
                     State.st.addUndeletedPair(peer, filePath);
             }
             return "Deleted file " + filePath + " with hash " + fileHash + ".";
