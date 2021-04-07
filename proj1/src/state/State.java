@@ -6,11 +6,16 @@ import java.io.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 // this class is a singleton
 public class State implements Serializable {
-    public static final String REPMAPNAME = "repMap.txt";
-    public static final State st = State.importMap();
+    public transient static final ScheduledExecutorService threadPool =
+            Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors() + 1);
+
+    public transient static final String REPMAPNAME = "repMap.txt";
+    public transient static final State st = State.importMap();
 
     private final ConcurrentMap<String, FileInfo> replicationMap;
     private volatile Long maxDiskSpaceB;

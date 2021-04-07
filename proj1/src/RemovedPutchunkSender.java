@@ -15,7 +15,7 @@ public class RemovedPutchunkSender extends MessageSender<PutChunkMsg> {
         super(sockThread, message, handler);
         this.putchunkAlreadySent = new AtomicBoolean(false);
         ScheduledExecutorService threadPool = Executors.newSingleThreadScheduledExecutor();
-        this.putChunkSender = new PutChunkSender(sockThread, message, handler, threadPool);
+        this.putChunkSender = new PutChunkSender(sockThread, message, handler);
     }
 
     private boolean refersToSamePutchunk(Message message) {

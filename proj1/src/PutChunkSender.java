@@ -1,24 +1,22 @@
 import message.Message;
 import message.PutChunkMsg;
 import message.StoredMsg;
+import state.State;
 
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class PutChunkSender extends MessageSender<PutChunkMsg> {
     private static final int MAX_RETRANSMIT = 5;
-    private static final long COLLECTION_INTERVAL = 1; // in seconds
+    private static final long COLLECTION_INTERVAL = 1000; // in ms
     private final Queue<Message> receivedMessages;
-    private final ScheduledExecutorService threadPool;
     private int i;
     private int storedCnt;
 
-    public PutChunkSender(SockThread sockThread, PutChunkMsg msg, MessageHandler handler, ScheduledExecutorService threadPool) {
+    public PutChunkSender(SockThread sockThread, PutChunkMsg msg, MessageHandler handler) {
         super(sockThread, msg, handler);
         this.receivedMessages = new ConcurrentLinkedQueue<>();
-        this.threadPool = threadPool;
         this.i = 0;
         this.storedCnt = 0;
     }
@@ -39,8 +37,8 @@ public class PutChunkSender extends MessageSender<PutChunkMsg> {
 
     public void restart() {
         super.send();
-        this.threadPool.schedule(this,
-                (long) (COLLECTION_INTERVAL * Math.pow(2, this.i)), TimeUnit.SECONDS);
+        State.threadPool.schedule(this,
+                (long) (COLLECTION_INTERVAL * Math.pow(2, this.i)), TimeUnit.MILLISECONDS);
     }
 
     @Override

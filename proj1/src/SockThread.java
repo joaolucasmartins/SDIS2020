@@ -1,15 +1,14 @@
 import message.Message;
+import state.State;
 
 import java.io.IOException;
 import java.net.*;
 import java.util.Arrays;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class SockThread implements Runnable {
     private final AtomicBoolean running = new AtomicBoolean(false);
-    private final ThreadPoolExecutor threadPool;
 
     private boolean inGroup;
     private final MulticastSocket sock;
@@ -21,7 +20,6 @@ public class SockThread implements Runnable {
         this.sock = sock;
         this.group = group;
         this.port = port;
-        this.threadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
 
         this.inGroup = false;
         this.join();
@@ -53,7 +51,6 @@ public class SockThread implements Runnable {
 
     public void close() {
         this.leave();
-        this.threadPool.shutdown();
         this.sock.close();
     }
 
@@ -83,7 +80,7 @@ public class SockThread implements Runnable {
                 continue;
             }
 
-            this.threadPool.execute(
+            State.threadPool.execute(
                     () -> handler.handleMessage(Arrays.copyOfRange(packet.getData(), 0, packet.getLength()))
             );
         }
@@ -93,10 +90,25 @@ public class SockThread implements Runnable {
         byte[] packetContent = message.getContent();
         System.out.println("Sent: " + message);
         DatagramPacket packet = new DatagramPacket(packetContent, packetContent.length, group, port);
+
+        // TODO cul sleep maybe
+        // for (int i = 0; i < 3; ++i) {
+        //     try {
+        //         sock.send(packet);
+        //     } catch (IOException e) {
+        //         try {
+        //             Thread.sleep(new Random().nextInt(400 + 1), 0);
+        //         } catch (InterruptedException interruptedException) {
+        //             break;
+        //         }
+        //         continue;
+        //     }
+        //     break;
+        // }
+
         try {
             sock.send(packet);
-        } catch (IOException e) {
-            e.printStackTrace(); // TODO Move this maybe, do we need to throw it outside?
+        } catch (IOException ignored) {
         }
     }
 
