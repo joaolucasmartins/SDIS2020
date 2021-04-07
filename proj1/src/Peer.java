@@ -1,13 +1,12 @@
 import file.DigestFile;
 import state.FileInfo;
-import utils.Pair;
 import state.State;
 import message.PutChunkMsg;
 import message.GetChunkMsg;
 import message.RemovedMsg;
 import message.DeleteMsg;
+import utils.Pair;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.*;
 import java.rmi.RemoteException;
@@ -19,7 +18,7 @@ import java.util.concurrent.*;
 
 public class Peer implements TestInterface {
     private final ScheduledExecutorService backupThreadPool;
-    private final ScheduledExecutorService restoreThreadPool;
+    private final ExecutorService restoreThreadPool;
 
     private boolean closed = false;
     // cmd line arguments
@@ -44,7 +43,7 @@ public class Peer implements TestInterface {
         if (args.length != 9) usage();
 
         this.backupThreadPool = Executors.newScheduledThreadPool(10);
-        this.restoreThreadPool = Executors.newScheduledThreadPool(10);
+        this.restoreThreadPool = Executors.newFixedThreadPool(10);
 
         this.protocolVersion = args[0];
         this.id = args[1];
@@ -128,8 +127,6 @@ public class Peer implements TestInterface {
                 } catch (RemoteException e) {
                     e.printStackTrace();
                 }
-            } else if (cmd.equalsIgnoreCase("removed")) {
-                this.MCSock.send(new RemovedMsg(this.protocolVersion, this.id, "c1844545909fe089c87c73f089be8be3f7e27c40d63f4daab455a769b30cbbee", 0));
             } else if (cmd.equalsIgnoreCase("restore")) {
                 try {
                     System.out.println(this.restore(filePath));
@@ -181,6 +178,7 @@ public class Peer implements TestInterface {
             finalProg.cleanup();
         }));
 
+        // TODO add to extras section
         // setup the access point
         TestInterface stub;
         try {
@@ -213,7 +211,7 @@ public class Peer implements TestInterface {
                     if (State.st.isChunkOk(fileId, i)) continue;
                 }
 
-                PutChunkMsg putChunkMsg = new PutChunkMsg("1.0", this.id,
+                PutChunkMsg putChunkMsg = new PutChunkMsg(this.protocolVersion, this.id,
                         fileId, i, replicationDegree, chunks.get(i));
                 PutChunkSender putChunkSender = new PutChunkSender(this.MDBSock, putChunkMsg,
                         this.messageHandler, this.backupThreadPool);
@@ -228,13 +226,12 @@ public class Peer implements TestInterface {
 
     @Override
     public String restore(String filePath) throws RemoteException {
-        // https://stackoverflow.com/questions/10934187/how-to-wait-for-a-threadpoolexecutor-to-finish
         try {
             String fileId = DigestFile.getHash(filePath);
             int chunkNo = DigestFile.getChunkCount(filePath); // TODO Esperar até o ultimo ter size 0?
             if (chunkNo < 0) return "file " + filePath + " is too big";
 
-            List<GetChunkSender> senders = new ArrayList<>();
+            List<Pair<Future<?>, GetChunkSender>> senders = new ArrayList<>();
             for (int currChunk = 0; currChunk < chunkNo; ++currChunk) {
                 // this is redundant because we have to be the initiator peer to restore a file
                 // if (State.st.amIStoringChunk(fileId, currChunk)) {
@@ -244,21 +241,18 @@ public class Peer implements TestInterface {
                 // }
 
                 GetChunkMsg msg = new GetChunkMsg(this.protocolVersion, this.id, fileId, currChunk);
-                GetChunkSender chunkSender = new GetChunkSender(this.MCSock, msg, this.messageHandler,
-                        restoreThreadPool);
-                chunkSender.restart();
-                senders.add(chunkSender);
+                GetChunkSender chunkSender = new GetChunkSender(this.MCSock, msg, this.messageHandler);
+                senders.add(new Pair<>(this.restoreThreadPool.submit(chunkSender), chunkSender));
             }
 
             List<byte[]> chunks = new ArrayList<>(chunkNo);
-            for (GetChunkSender sender : senders) {
-                // busy-wait :c
-                while (!sender.isDone.get()) {
-                }
-                if (!sender.success.get())
+            for (var sender : senders) {
+                sender.p1.get();
+                if (!sender.p2.success.get()) {
                     throw new RemoteException("Failed to restore the file " + filePath +
-                            " because of a missing chunk: " + sender.message.getChunkNo());
-                chunks.add(sender.getResponse().getChunk());
+                            " because of a missing chunk: " + sender.p2.message.getChunkNo());
+                }
+                chunks.add(sender.p2.getResponse().getChunk());
             }
 
             DigestFile.assembleFile(filePath + "1", chunks);
@@ -344,8 +338,10 @@ public class Peer implements TestInterface {
                 }
             }
 
-            if (State.st.isStorageFull()) this.MDBSock.leave();
-            else this.MDBSock.join();
+            if (this.protocolVersion.equals("2.0")) {
+                if (State.st.isStorageFull()) this.MDBSock.leave();
+                else this.MDBSock.join();
+            }
         }
 
         return "Max disk space set to " + (newMaxDiskSpaceKB < 0 ? "infinite" : newMaxDiskSpaceKB) + " KBytes.";

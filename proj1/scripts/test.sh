@@ -42,4 +42,7 @@ state | STATE)
 	;;
 esac
 
+cd build || exit 1
 java TestApp "$@"
+
+exit 0
