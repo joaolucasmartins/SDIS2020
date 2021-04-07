@@ -217,12 +217,14 @@ public class Peer implements TestInterface {
             List<byte[]> chunks = DigestFile.divideFile(filePath, replicationDegree);
             for (int i = 0; i < chunks.size(); ++i) {
                 // only backup chunks that don't have the desired replication degree
-                if (State.st.isChunkOk(fileId, i)) continue;
+                synchronized (State.st) {
+                    if (State.st.isChunkOk(fileId, i)) continue;
+                }
+
                 PutChunkMsg putChunkMsg = new PutChunkMsg("1.0", this.id,
                         fileId, i, replicationDegree, chunks.get(i));
                 PutChunkSender putChunkSender = new PutChunkSender(this.MDBSock, putChunkMsg,
                         this.messageHandler, this.backupThreadPool);
-
                 putChunkSender.restart();
             }
         } catch (IOException e) {
@@ -258,7 +260,9 @@ public class Peer implements TestInterface {
 
             List<byte[]> chunks = new ArrayList<>(chunkNo);
             for (GetChunkSender sender : senders) {
-                while (!sender.isDone.get()) {}
+                // busy-wait :c
+                while (!sender.isDone.get()) {
+                }
                 if (!sender.success.get())
                     throw new RemoteException("Failed to restore the file " + filePath +
                             " because of a missing chunk: " + sender.message.getChunkNo());
@@ -268,10 +272,8 @@ public class Peer implements TestInterface {
             DigestFile.assembleFile(filePath + "1", chunks);
             return "Restored file " + filePath + " with hash " + fileId + ".";
         } catch (Exception e) {
-            e.printStackTrace();
-            throw new RemoteException();
+            throw new RemoteException("Failed to restore the file " + filePath);
         }
-        // return "restore";
     }
 
     @Override
@@ -282,7 +284,6 @@ public class Peer implements TestInterface {
             this.MCSock.send(msg);
             return "Deleted file " + filePath + " with hash " + fileHash + ".";
         } catch (IOException e) {
-            e.printStackTrace();
             throw new RemoteException("Deletion of " + filePath + " failed.");
         }
     }
@@ -325,33 +326,35 @@ public class Peer implements TestInterface {
         long newMaxDiskSpaceB = newMaxDiskSpaceKB * 1000L;
         boolean isDone = false;
 
-        if (newMaxDiskSpaceB < 0) {
-            State.st.setMaxDiskSpaceB(-1L);
-            // infinite capacity => do nothing
-            isDone = true;
-        } else if (State.st.getMaxDiskSpaceB() >= 0) {
-            long capacityDelta = newMaxDiskSpaceB - State.st.getMaxDiskSpaceB();
-            State.st.setMaxDiskSpaceB(newMaxDiskSpaceB);
-            // if max capacity is unchanged or increases, we don't need to do anything
-            if (capacityDelta >= 0)
+        synchronized (State.st) {
+            if (newMaxDiskSpaceB < 0) {
+                State.st.setMaxDiskSpaceB(-1L);
+                // infinite capacity => do nothing
                 isDone = true;
-        } else {
-            State.st.setMaxDiskSpaceB(newMaxDiskSpaceB);
-        }
-
-        if (!isDone) {
-            long currentCap = State.st.getFilledStorageB() - State.st.getMaxDiskSpaceB();
-            if (currentCap > 0) {
-                // remove things (trying to keep everything above 0 replication degree)
-                System.err.println("Removing: " + currentCap);
-                currentCap = trimFiles(currentCap, false);
-                if (currentCap > 0) trimFiles(currentCap, true);
-
+            } else if (State.st.getMaxDiskSpaceB() >= 0) {
+                long capacityDelta = newMaxDiskSpaceB - State.st.getMaxDiskSpaceB();
+                State.st.setMaxDiskSpaceB(newMaxDiskSpaceB);
+                // if max capacity is unchanged or increases, we don't need to do anything
+                if (capacityDelta >= 0)
+                    isDone = true;
+            } else {
+                State.st.setMaxDiskSpaceB(newMaxDiskSpaceB);
             }
-        }
 
-        if (State.st.isStorageFull()) this.MDBSock.leave();
-        else this.MDBSock.join();
+            if (!isDone) {
+                long currentCap = State.st.getFilledStorageB() - State.st.getMaxDiskSpaceB();
+                if (currentCap > 0) {
+                    // remove things (trying to keep everything above 0 replication degree)
+                    System.err.println("Removing: " + currentCap);
+                    currentCap = trimFiles(currentCap, false);
+                    if (currentCap > 0) trimFiles(currentCap, true);
+
+                }
+            }
+
+            if (State.st.isStorageFull()) this.MDBSock.leave();
+            else this.MDBSock.join();
+        }
 
         return "Max disk space set to " + (newMaxDiskSpaceKB < 0 ? "infinite" : newMaxDiskSpaceKB) + " KBytes.";
     }
@@ -363,41 +366,43 @@ public class Peer implements TestInterface {
         StringBuilder chunksIStore = new StringBuilder();
         chunksIStore.append("Chunks I am storing:\n");
 
-        for (var entry : State.st.getAllFilesInfo().entrySet()) {
-            String fileId = entry.getKey();
-            FileInfo fileInfo = entry.getValue();
+        synchronized (State.st) {
+            for (var entry : State.st.getAllFilesInfo().entrySet()) {
+                String fileId = entry.getKey();
+                FileInfo fileInfo = entry.getValue();
 
-            if (fileInfo.isInitiator()) {
-                filesIInitiated.append("\tFile path: ").append(fileInfo.getFilePath()).append("\n");
-                filesIInitiated.append("\t\tFile ID: ").append(fileId).append("\n");
-                filesIInitiated.append("\t\tDesired replication degree: ").append(fileInfo.getDesiredRep()).append("\n");
-                filesIInitiated.append("\t\tChunks:\n");
-                for (var chunkEntry : fileInfo.getAllChunks().entrySet()) {
-                    filesIInitiated.append("\t\t\tID: ").append(chunkEntry.getKey())
-                            .append(" - Perceived rep.: ").append(chunkEntry.getValue()).append("\n");
-                }
-            } else {
-                for (var chunkEntry : fileInfo.getAllChunks().entrySet()) {
-                    int chunkId = chunkEntry.getKey();
-                    int perceivedRep = chunkEntry.getValue().p1;
-                    boolean isStored = chunkEntry.getValue().p2;
-                    if (!isStored)  // only show chunks we are currently storing
-                        continue;
+                if (fileInfo.isInitiator()) {
+                    filesIInitiated.append("\tFile path: ").append(fileInfo.getFilePath()).append("\n");
+                    filesIInitiated.append("\t\tFile ID: ").append(fileId).append("\n");
+                    filesIInitiated.append("\t\tDesired replication degree: ").append(fileInfo.getDesiredRep()).append("\n");
+                    filesIInitiated.append("\t\tChunks:\n");
+                    for (var chunkEntry : fileInfo.getAllChunks().entrySet()) {
+                        filesIInitiated.append("\t\t\tID: ").append(chunkEntry.getKey())
+                                .append(" - Perceived rep.: ").append(chunkEntry.getValue()).append("\n");
+                    }
+                } else {
+                    for (var chunkEntry : fileInfo.getAllChunks().entrySet()) {
+                        int chunkId = chunkEntry.getKey();
+                        int perceivedRep = chunkEntry.getValue().p1;
+                        boolean isStored = chunkEntry.getValue().p2;
+                        if (!isStored)  // only show chunks we are currently storing
+                            continue;
 
-                    chunksIStore.append("\tChunk ID: ").append(fileId).append(" - ").append(chunkId).append("\n");
-                    chunksIStore.append("\t\tSize: ").append(DigestFile.getChunkSize(fileId, chunkId)).append("\n");
-                    chunksIStore.append("\t\tDesired replication degree:").append(fileInfo.getDesiredRep()).append("\n");
-                    chunksIStore.append("\t\tPerceived replication degree:").append(perceivedRep).append("\n");
+                        chunksIStore.append("\tChunk ID: ").append(fileId).append(" - ").append(chunkId).append("\n");
+                        chunksIStore.append("\t\tSize: ").append(DigestFile.getChunkSize(fileId, chunkId)).append("\n");
+                        chunksIStore.append("\t\tDesired replication degree:").append(fileInfo.getDesiredRep()).append("\n");
+                        chunksIStore.append("\t\tPerceived replication degree:").append(perceivedRep).append("\n");
+                    }
                 }
             }
-        }
 
-        long maxStorageSizeKB = State.st.getMaxDiskSpaceKB();
-        return filesIInitiated
-                .append(chunksIStore)
-                .append("Storing ").append(Math.round(State.st.getFilledStorageB() / 1000.0))
-                .append("KB of a maximum of ")
-                .append(maxStorageSizeKB < 0 ? "infinite " : maxStorageSizeKB).append("KB.")
-                .toString();
+            long maxStorageSizeKB = State.st.getMaxDiskSpaceKB();
+            return filesIInitiated
+                    .append(chunksIStore)
+                    .append("Storing ").append(Math.round(State.st.getFilledStorageB() / 1000.0))
+                    .append("KB of a maximum of ")
+                    .append(maxStorageSizeKB < 0 ? "infinite " : maxStorageSizeKB).append("KB.")
+                    .toString();
+        }
     }
 }

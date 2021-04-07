@@ -79,7 +79,7 @@ public class MessageHandler {
                 case PutChunkMsg.type:
                     PutChunkMsg backupMsg = (PutChunkMsg) message;
                     // do not handle files we initiated the backup of
-//                    synchronized (State.st) {
+                    synchronized (State.st) {
                         if (State.st.isInitiator(backupMsg.getFileId())) break;
 
                         // always register the existence of this file
@@ -102,53 +102,62 @@ public class MessageHandler {
                         State.st.incrementChunkDeg(backupMsg.getFileId(), backupMsg.getChunkNo());
                         State.st.setAmStoringChunk(backupMsg.getFileId(), backupMsg.getChunkNo(), true);
 
-                        // send STORED reply message
-                        response = new StoredMsg(this.protocolVersion, this.selfID,
-                                backupMsg.getFileId(), backupMsg.getChunkNo());
-                        StoredSender storedSender = new StoredSender(this.MCSock, (StoredMsg) response, this);
-                        storedSender.run();
-
                         // unsub MDB when storage is full
                         if (State.st.isStorageFull()) this.MDBSock.leave();
-//                    }
+                    }
+
+                    // send STORED reply message
+                    response = new StoredMsg(this.protocolVersion, this.selfID,
+                            backupMsg.getFileId(), backupMsg.getChunkNo());
+                    StoredSender storedSender = new StoredSender(this.MCSock, (StoredMsg) response, this);
+                    storedSender.run();
                     break;
                 case StoredMsg.type:
                     StoredMsg storedMsg = (StoredMsg) message;
-                    State.st.incrementChunkDeg(storedMsg.getFileId(), storedMsg.getChunkNo());
+                    synchronized (State.st) {
+                        State.st.incrementChunkDeg(storedMsg.getFileId(), storedMsg.getChunkNo());
+                    }
                     break;
                 case DeleteMsg.type:
                     DeleteMsg delMsg = (DeleteMsg) message;
-                    // delete the file on the file system
-                    // also updates state entry and space filled
-                    DigestFile.deleteFile(delMsg.getFileId());
+                    synchronized (State.st) {
+                        // delete the file on the file system
+                        // also updates state entry and space filled
+                        DigestFile.deleteFile(delMsg.getFileId());
 
-                    // sub MDB when storage is not full
-                    if (!State.st.isStorageFull())
-                        this.MDBSock.join();
+                        // sub MDB when storage is not full
+                        if (!State.st.isStorageFull())
+                            this.MDBSock.join();
+                    }
                     break;
                 case GetChunkMsg.type:
                     GetChunkMsg getChunkMsg = (GetChunkMsg) message;
-                    if (State.st.amIStoringChunk(getChunkMsg.getFileId(), getChunkMsg.getChunkNo())) {
-                        response = new ChunkMsg(this.protocolVersion, this.selfID,
-                                getChunkMsg.getFileId(), getChunkMsg.getChunkNo());
-                        ChunkSender chunkSender = new ChunkSender(this.MDRSock, (ChunkMsg) response, this);
-                        chunkSender.run();
+                    synchronized (State.st) {
+                        if (!State.st.amIStoringChunk(getChunkMsg.getFileId(), getChunkMsg.getChunkNo()))
+                            break;
                     }
+
+                    response = new ChunkMsg(this.protocolVersion, this.selfID,
+                            getChunkMsg.getFileId(), getChunkMsg.getChunkNo());
+                    ChunkSender chunkSender = new ChunkSender(this.MDRSock, (ChunkMsg) response, this);
+                    chunkSender.run();
                     break;
                 case ChunkMsg.type:
                     break;
                 case RemovedMsg.type:
                     RemovedMsg removedMsg = (RemovedMsg) message;
-                    State.st.decrementChunkDeg(removedMsg.getFileId(), removedMsg.getChunkNo());
-                    if (State.st.amIStoringChunk(removedMsg.getFileId(), removedMsg.getChunkNo()) &&
-                            !State.st.isChunkOk(removedMsg.getFileId(), removedMsg.getChunkNo())) {
+                    synchronized (State.st) {
+                        State.st.decrementChunkDeg(removedMsg.getFileId(), removedMsg.getChunkNo());
+                        if (State.st.amIStoringChunk(removedMsg.getFileId(), removedMsg.getChunkNo()) &&
+                                !State.st.isChunkOk(removedMsg.getFileId(), removedMsg.getChunkNo())) {
 
-                        int repDegree = State.st.getFileDeg(removedMsg.getFileId());
-                        byte[] chunk = DigestFile.readChunk(removedMsg.getFileId() + File.separator + removedMsg.getChunkNo());
-                        PutChunkMsg putChunkMsg = new PutChunkMsg(this.protocolVersion, this.selfID,
-                                removedMsg.getFileId(), removedMsg.getChunkNo(), repDegree, chunk);
-                        RemovedPutchunkSender removedPutchunkSender = new RemovedPutchunkSender(this.MDBSock, putChunkMsg, this);
-                        removedPutchunkSender.run();
+                            int repDegree = State.st.getFileDeg(removedMsg.getFileId());
+                            byte[] chunk = DigestFile.readChunk(removedMsg.getFileId() + File.separator + removedMsg.getChunkNo());
+                            PutChunkMsg putChunkMsg = new PutChunkMsg(this.protocolVersion, this.selfID,
+                                    removedMsg.getFileId(), removedMsg.getChunkNo(), repDegree, chunk);
+                            RemovedPutchunkSender removedPutchunkSender = new RemovedPutchunkSender(this.MDBSock, putChunkMsg, this);
+                            removedPutchunkSender.run();
+                        }
                     }
                     break;
                 default:

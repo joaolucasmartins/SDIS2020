@@ -26,27 +26,27 @@ public class State implements Serializable {
     }
 
     // STORAGE
-    public synchronized Long getMaxDiskSpaceB() {
+    public Long getMaxDiskSpaceB() {
         return maxDiskSpaceB;
     }
 
-    public synchronized Long getMaxDiskSpaceKB() {
+    public Long getMaxDiskSpaceKB() {
         return maxDiskSpaceB < 0 ? -1 : maxDiskSpaceB / 1000;
     }
 
-    public synchronized void setMaxDiskSpaceB(Long maxDiskSpaceB) {
+    public void setMaxDiskSpaceB(Long maxDiskSpaceB) {
         this.maxDiskSpaceB = maxDiskSpaceB;
     }
 
-    public synchronized void initFilledStorage() {
+    public void initFilledStorage() {
         this.filledStorageSizeB = DigestFile.getStorageSize();
     }
 
-    public synchronized long getFilledStorageB() {
+    public long getFilledStorageB() {
         return this.filledStorageSizeB;
     }
 
-    public synchronized boolean updateStorageSize(long sizeToAddB) {
+    public boolean updateStorageSize(long sizeToAddB) {
         if (sizeToAddB < 0) {
             filledStorageSizeB += sizeToAddB;
             return true;
@@ -64,7 +64,7 @@ public class State implements Serializable {
         return false;
     }
 
-    public synchronized boolean isStorageFull() {
+    public boolean isStorageFull() {
         return this.maxDiskSpaceB > 0 && (this.filledStorageSizeB < this.maxDiskSpaceB);
     }
 
