@@ -162,8 +162,9 @@ public class MessageHandler {
                             removedPutchunkSender.run();
                         }
 
-                        if (State.st.hasUndeletedPair(removedMsg.getSenderId(), removedMsg.getFileId()))
-                            State.st.removeUndeletedPair(removedMsg.getSenderId(), removedMsg.getFileId());
+                        if (this.protocolVersion.equals("2.0") &&
+                            State.st.hasUndeletedPair(removedMsg.getSenderId(), removedMsg.getFileId()))
+                                State.st.removeUndeletedPair(removedMsg.getSenderId(), removedMsg.getFileId());
                     }
                     break;
                 default:
