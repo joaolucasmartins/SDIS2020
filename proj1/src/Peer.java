@@ -136,14 +136,6 @@ public class Peer implements TestInterface {
                 } catch (RemoteException e) {
                     e.printStackTrace();
                 }
-            } else if (cmd.equalsIgnoreCase("divide")) {
-                try {
-                    List<byte[]> chunks = DigestFile.divideFile(filePath, 3);
-                    for (int i = 0; i < chunks.size(); ++i)
-                        DigestFile.writeChunk(DigestFile.getHash(filePath) + File.separator + i, chunks.get(i), chunks.get(i).length);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
             }
         } while (!cmd.equalsIgnoreCase("EXIT"));
 
