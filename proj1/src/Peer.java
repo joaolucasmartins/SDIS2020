@@ -293,12 +293,12 @@ public class Peer implements TestInterface {
 
             for (var chunkEntry : entry.getValue().getAllChunks().entrySet()) {
                 int chunkNo = chunkEntry.getKey();
-                int perceivedRep = chunkEntry.getValue().p1;
+                int perceivedRep = chunkEntry.getValue().p1.size();
                 boolean isStored = chunkEntry.getValue().p2;
                 if (isStored && (force || perceivedRep > 1) && perceivedRep > 0) {
                     // if we have the chunk stored => delete it && decrement perceived rep.
                     long chunkSize = DigestFile.deleteChunk(fileId, chunkNo); // updates state capacity
-                    State.st.decrementChunkDeg(fileId, chunkNo);
+                    State.st.decrementChunkDeg(fileId, chunkNo, this.id);
                     State.st.setAmStoringChunk(fileId, chunkNo, false);
                     currentCap -= chunkSize;
 
@@ -375,7 +375,7 @@ public class Peer implements TestInterface {
                 } else {
                     for (var chunkEntry : fileInfo.getAllChunks().entrySet()) {
                         int chunkId = chunkEntry.getKey();
-                        int perceivedRep = chunkEntry.getValue().p1;
+                        int perceivedRep = chunkEntry.getValue().p1.size();
                         boolean isStored = chunkEntry.getValue().p2;
                         if (!isStored)  // only show chunks we are currently storing
                             continue;

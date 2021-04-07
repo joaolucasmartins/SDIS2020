@@ -99,7 +99,8 @@ public class MessageHandler {
                             return;
                         }
                         State.st.declareChunk(backupMsg.getFileId(), backupMsg.getChunkNo());
-                        State.st.incrementChunkDeg(backupMsg.getFileId(), backupMsg.getChunkNo());
+                        // Add selfId to map Entry
+                        State.st.incrementChunkDeg(backupMsg.getFileId(), backupMsg.getChunkNo(), this.selfID);
                         State.st.setAmStoringChunk(backupMsg.getFileId(), backupMsg.getChunkNo(), true);
 
                         // unsub MDB when storage is full
@@ -115,7 +116,7 @@ public class MessageHandler {
                 case StoredMsg.type:
                     StoredMsg storedMsg = (StoredMsg) message;
                     synchronized (State.st) {
-                        State.st.incrementChunkDeg(storedMsg.getFileId(), storedMsg.getChunkNo());
+                        State.st.incrementChunkDeg(storedMsg.getFileId(), storedMsg.getChunkNo(), storedMsg.getSenderId());
                     }
                     break;
                 case DeleteMsg.type:
@@ -147,7 +148,7 @@ public class MessageHandler {
                 case RemovedMsg.type:
                     RemovedMsg removedMsg = (RemovedMsg) message;
                     synchronized (State.st) {
-                        State.st.decrementChunkDeg(removedMsg.getFileId(), removedMsg.getChunkNo());
+                        State.st.decrementChunkDeg(removedMsg.getFileId(), removedMsg.getChunkNo(), removedMsg.getSenderId());
                         if (State.st.amIStoringChunk(removedMsg.getFileId(), removedMsg.getChunkNo()) &&
                                 !State.st.isChunkOk(removedMsg.getFileId(), removedMsg.getChunkNo())) {
 

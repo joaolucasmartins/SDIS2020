@@ -36,7 +36,7 @@ public abstract class Message {
         return header.getBytes();
     }
 
-    String getSenderId() {
+    public String getSenderId() {
         return this.id;
     }
 }

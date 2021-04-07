@@ -124,14 +124,14 @@ public class State implements Serializable {
         return this.replicationMap.get(fileId).getChunkPerceivedRep(chunkNo);
     }
 
-    public void incrementChunkDeg(String fileId, int chunkNo) {
+    public void incrementChunkDeg(String fileId, int chunkNo, String peerId) {
         if (!this.replicationMap.containsKey(fileId)) return;
-        this.replicationMap.get(fileId).incrementChunkDeg(chunkNo);
+        this.replicationMap.get(fileId).incrementChunkDeg(chunkNo, peerId);
     }
 
-    public void decrementChunkDeg(String fileId, int chunkNo) {
+    public void decrementChunkDeg(String fileId, int chunkNo, String peerId) {
         if (!this.replicationMap.containsKey(fileId)) return;
-        this.replicationMap.get(fileId).decrementChunkDeg(chunkNo);
+        this.replicationMap.get(fileId).decrementChunkDeg(chunkNo, peerId);
     }
 
     // OTHER

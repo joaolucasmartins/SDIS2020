@@ -3,6 +3,8 @@ package state;
 import utils.Pair;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -10,7 +12,7 @@ import java.util.concurrent.ConcurrentMap;
 public class FileInfo implements Serializable {
     private String filePath = null;  // only set if we are the initiator
     private Integer desiredRep;
-    private final ConcurrentMap<Integer, Pair<Integer, Boolean>> chunkInfo;
+    private final ConcurrentMap<Integer, Pair<List<String>, Boolean>> chunkInfo;
 
     public FileInfo(int desiredRep) {
         this.desiredRep = desiredRep;
@@ -24,7 +26,7 @@ public class FileInfo implements Serializable {
 
     public void declareChunk(int chunkNo) {
         if (!this.chunkInfo.containsKey(chunkNo))
-            this.chunkInfo.put(chunkNo, new Pair<>(0, false));
+            this.chunkInfo.put(chunkNo, new Pair<>(new ArrayList<>(), false));
     }
 
     public boolean amIStoringChunk(int chunkNo) {
@@ -56,29 +58,30 @@ public class FileInfo implements Serializable {
     }
 
     public int getChunkPerceivedRep(int chunkNo) {
-        return this.chunkInfo.get(chunkNo).p1;
+        return this.chunkInfo.get(chunkNo).p1.size();
     }
 
-    public void incrementChunkDeg(int chunkNo) {
+    public void incrementChunkDeg(int chunkNo, String peerId) {
         if (this.chunkInfo.containsKey(chunkNo)) {
-            Pair<Integer, Boolean> chunk = this.chunkInfo.get(chunkNo);
-            chunk.p1 += 1;
+            Pair<List<String>, Boolean> chunk = this.chunkInfo.get(chunkNo);
+            chunk.p1.add(peerId);
         } else {
-            this.chunkInfo.put(chunkNo, new Pair<>(1, false));
+            List<String> l = new ArrayList<>(){{ add(peerId); }};
+            this.chunkInfo.put(chunkNo, new Pair<>(l, false));
         }
     }
 
-    public void decrementChunkDeg(int chunkNo) {
+    public void decrementChunkDeg(int chunkNo, String peerId) {
         if (this.chunkInfo.containsKey(chunkNo)) {
-            Pair<Integer, Boolean> chunk = this.chunkInfo.get(chunkNo);
-            chunk.p1 -= 1;
+            Pair<List<String>, Boolean> chunk = this.chunkInfo.get(chunkNo);
+            chunk.p1.remove(peerId);
         } else {
-            this.chunkInfo.put(chunkNo, new Pair<>(0, false));
+            this.chunkInfo.put(chunkNo, new Pair<>(new ArrayList<>(), false));
         }
     }
 
     // iterator
-    public Map<Integer, Pair<Integer, Boolean>> getAllChunks() {
+    public Map<Integer, Pair<List<String>, Boolean>> getAllChunks() {
         return this.chunkInfo;
     }
 }
