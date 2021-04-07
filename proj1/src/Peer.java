@@ -15,13 +15,11 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.*;
 
 public class Peer implements TestInterface {
-    private final ThreadPoolExecutor backupThreadPool;
-    private final ThreadPoolExecutor restoreThreadPool;
+    private final ScheduledExecutorService backupThreadPool;
+    private final ScheduledExecutorService restoreThreadPool;
 
     private boolean closed = false;
     // cmd line arguments
@@ -45,8 +43,8 @@ public class Peer implements TestInterface {
         // parse args
         if (args.length != 9) usage();
 
-        this.backupThreadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
-        this.restoreThreadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
+        this.backupThreadPool = Executors.newScheduledThreadPool(10);
+        this.restoreThreadPool = Executors.newScheduledThreadPool(10);
 
         this.protocolVersion = args[0];
         this.id = args[1];
@@ -222,9 +220,10 @@ public class Peer implements TestInterface {
                 if (State.st.isChunkOk(fileId, i)) continue;
                 PutChunkMsg putChunkMsg = new PutChunkMsg("1.0", this.id,
                         fileId, i, replicationDegree, chunks.get(i));
-                PutChunkSender putChunkSender = new PutChunkSender(this.MDBSock, putChunkMsg, this.messageHandler);
+                PutChunkSender putChunkSender = new PutChunkSender(this.MDBSock, putChunkMsg,
+                        this.messageHandler, this.backupThreadPool);
 
-                this.backupThreadPool.execute(putChunkSender);
+                putChunkSender.restart();
             }
         } catch (IOException e) {
             throw new RemoteException("Couldn't divide file " + filePath);
@@ -237,29 +236,36 @@ public class Peer implements TestInterface {
     public String restore(String filePath) throws RemoteException {
         // https://stackoverflow.com/questions/10934187/how-to-wait-for-a-threadpoolexecutor-to-finish
         try {
-            List<Pair<Future<Object>, GetChunkSender>> threads = new ArrayList<>();
             String fileId = DigestFile.getHash(filePath);
             int chunkNo = DigestFile.getChunkCount(filePath); // TODO Esperar até o ultimo ter size 0?
             if (chunkNo < 0) return "file " + filePath + " is too big";
-            byte[][] chunks = new byte[chunkNo][];
+
+            List<GetChunkSender> senders = new ArrayList<>();
             for (int currChunk = 0; currChunk < chunkNo; ++currChunk) {
-                if (State.st.amIStoringChunk(fileId, currChunk)) {
-                    GetChunkMsg msg = new GetChunkMsg(this.protocolVersion, this.id, fileId, currChunk);
-                    GetChunkSender chunkSender = new GetChunkSender(this.MCSock, msg, this.messageHandler);
-                    threads.add(new Pair<>(this.restoreThreadPool.submit(chunkSender, null), chunkSender));
-                } else {
-                    chunks[currChunk] = DigestFile.readChunk(filePath, currChunk);
-                }
+                // this is redundant because we have to be the initiator peer to restore a file
+                // if (State.st.amIStoringChunk(fileId, currChunk)) {
+                //     // code above would go here
+                // } else {
+                //     chunks[currChunk] = DigestFile.readChunk(filePath, currChunk);
+                // }
+
+                GetChunkMsg msg = new GetChunkMsg(this.protocolVersion, this.id, fileId, currChunk);
+                GetChunkSender chunkSender = new GetChunkSender(this.MCSock, msg, this.messageHandler,
+                        restoreThreadPool);
+                chunkSender.restart();
+                senders.add(chunkSender);
             }
 
-            for (var pair: threads) {
-                Future<Object> promise = pair.p1;
-                GetChunkSender sender = pair.p2;
-                if (promise.get() != null || !sender.success.get())
-                    return "FAIL";
-                chunks[sender.message.getChunkNo()] = sender.getResponse().getChunk();
+            List<byte[]> chunks = new ArrayList<>(chunkNo);
+            for (GetChunkSender sender : senders) {
+                while (!sender.isDone.get()) {}
+                if (!sender.success.get())
+                    throw new RemoteException("Failed to restore the file " + filePath +
+                            " because of a missing chunk: " + sender.message.getChunkNo());
+                chunks.add(sender.getResponse().getChunk());
             }
-            DigestFile.assembleFile(filePath + "1", Arrays.asList(chunks));
+
+            DigestFile.assembleFile(filePath + "1", chunks);
             return "Restored file " + filePath + " with hash " + fileId + ".";
         } catch (Exception e) {
             e.printStackTrace();

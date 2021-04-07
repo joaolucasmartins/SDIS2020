@@ -5,6 +5,7 @@ import file.DigestFile;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 public class ChunkMsg extends Message {
     public static final String type = "CHUNK";
@@ -58,5 +59,10 @@ public class ChunkMsg extends Message {
     @Override
     public int getHeaderLen() {
         return 5;
+    }
+
+    @Override
+    public String toString() {
+        return type + " " + this.fileId + " chunkno. " + this.chunkNo;
     }
 }

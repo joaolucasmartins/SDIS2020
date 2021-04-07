@@ -2,16 +2,26 @@ import message.ChunkMsg;
 import message.GetChunkMsg;
 import message.Message;
 
-import java.util.concurrent.Callable;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class GetChunkSender extends MessageSender<GetChunkMsg> {
     private static final int MAX_RETRANSMIT = 5;
-    private static final long COLLECTION_INTERVAL = 1000; // in ms
-    private boolean gotChunk;
+    private static final long COLLECTION_INTERVAL = 1; // in secs
     private ChunkMsg response;
-    public GetChunkSender(SockThread sockThread, GetChunkMsg message, MessageHandler handler) {
+    private final AtomicBoolean gotChunk;
+    private final ScheduledExecutorService threadPool;
+    private volatile int i;
+
+    public AtomicBoolean isDone;
+
+    public GetChunkSender(SockThread sockThread, GetChunkMsg message, MessageHandler handler, ScheduledExecutorService threadPool) {
         super(sockThread, message, handler);
-        gotChunk = false;
+        this.gotChunk = new AtomicBoolean(false);
+        this.threadPool = threadPool;
+        this.i = 0;
+        this.isDone = new AtomicBoolean(false);
     }
 
     public ChunkMsg getResponse() {
@@ -27,10 +37,16 @@ public class GetChunkSender extends MessageSender<GetChunkMsg> {
         return false;
     }
 
+    public void restart() {
+        super.send();
+        this.threadPool.schedule(this,
+                (long) (COLLECTION_INTERVAL * Math.pow(2, this.i)), TimeUnit.SECONDS);
+    }
+
     @Override
     public void notify(Message message) {
         if (refersToSameChunk(message)) {
-            gotChunk = true;
+            this.gotChunk.set(true);
             this.response = (ChunkMsg) message;
             this.xau();
         }
@@ -38,20 +54,18 @@ public class GetChunkSender extends MessageSender<GetChunkMsg> {
 
     @Override
     public void run() {
-        for (int i=0; i < MAX_RETRANSMIT; ++i) {
-            super.send();
-            try {
-                Thread.sleep((long) (COLLECTION_INTERVAL * Math.pow(2, i)));
-            } catch (InterruptedException e) {
-                this.success.set(false);
-                return; // XAU
-            }
-
-            if (gotChunk) {
-                this.success.set(true);
-                return;
-            }
+        if (gotChunk.get()) {
+            this.success.set(true);
+            this.isDone.set(true);
+            return;
         }
-        this.success.set(false);
+
+        ++this.i;
+        if (this.i == MAX_RETRANSMIT) {
+            this.isDone.set(true);
+            return;
+        }
+
+        this.restart();
     }
 }

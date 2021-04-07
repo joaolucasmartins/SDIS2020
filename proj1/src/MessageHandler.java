@@ -33,7 +33,6 @@ public class MessageHandler {
         this.observers.add(obs);
     }
 
-    // TODO chamar depois dos notifys
     public void rmObserver(Observer obs) {
         this.observers.remove(obs);
     }
@@ -80,36 +79,38 @@ public class MessageHandler {
                 case PutChunkMsg.type:
                     PutChunkMsg backupMsg = (PutChunkMsg) message;
                     // do not handle files we initiated the backup of
-                    if (State.st.isInitiator(backupMsg.getFileId())) break;
+//                    synchronized (State.st) {
+                        if (State.st.isInitiator(backupMsg.getFileId())) break;
 
-                    // always register the existence of this file
-                    State.st.addFileEntry(backupMsg.getFileId(), backupMsg.getReplication());
+                        // always register the existence of this file
+                        State.st.addFileEntry(backupMsg.getFileId(), backupMsg.getReplication());
 
-                    // do not store duplicated chunks
-                    if (State.st.amIStoringChunk(backupMsg.getFileId(), backupMsg.getChunkNo())) break;
-                    // if we surpass storage space
-                    if (!State.st.updateStorageSize(backupMsg.getChunk().length)) break;
+                        // do not store duplicated chunks
+                        if (State.st.amIStoringChunk(backupMsg.getFileId(), backupMsg.getChunkNo())) break;
+                        // if we surpass storage space
+                        if (!State.st.updateStorageSize(backupMsg.getChunk().length)) break;
 
-                    try {
-                        DigestFile.writeChunk(backupMsg.getFileId() + File.separator + backupMsg.getChunkNo(),
-                                backupMsg.getChunk(), backupMsg.getChunk().length);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        State.st.updateStorageSize(-backupMsg.getChunk().length);
-                        return;
-                    }
-                    State.st.declareChunk(backupMsg.getFileId(), backupMsg.getChunkNo());
-                    State.st.incrementChunkDeg(backupMsg.getFileId(), backupMsg.getChunkNo());
-                    State.st.setAmStoringChunk(backupMsg.getFileId(), backupMsg.getChunkNo(), true);
+                        try {
+                            DigestFile.writeChunk(backupMsg.getFileId() + File.separator + backupMsg.getChunkNo(),
+                                    backupMsg.getChunk(), backupMsg.getChunk().length);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                            State.st.updateStorageSize(-backupMsg.getChunk().length);
+                            return;
+                        }
+                        State.st.declareChunk(backupMsg.getFileId(), backupMsg.getChunkNo());
+                        State.st.incrementChunkDeg(backupMsg.getFileId(), backupMsg.getChunkNo());
+                        State.st.setAmStoringChunk(backupMsg.getFileId(), backupMsg.getChunkNo(), true);
 
-                    // send STORED reply message
-                    response = new StoredMsg(this.protocolVersion, this.selfID,
-                            backupMsg.getFileId(), backupMsg.getChunkNo());
-                    StoredSender storedSender = new StoredSender(this.MCSock, (StoredMsg) response, this);
-                    storedSender.run(); // TODO make this part of thread pool
+                        // send STORED reply message
+                        response = new StoredMsg(this.protocolVersion, this.selfID,
+                                backupMsg.getFileId(), backupMsg.getChunkNo());
+                        StoredSender storedSender = new StoredSender(this.MCSock, (StoredMsg) response, this);
+                        storedSender.run();
 
-                    // unsub MDB when storage is full
-                    if (State.st.isStorageFull()) this.MDBSock.leave();
+                        // unsub MDB when storage is full
+                        if (State.st.isStorageFull()) this.MDBSock.leave();
+//                    }
                     break;
                 case StoredMsg.type:
                     StoredMsg storedMsg = (StoredMsg) message;
@@ -131,7 +132,7 @@ public class MessageHandler {
                         response = new ChunkMsg(this.protocolVersion, this.selfID,
                                 getChunkMsg.getFileId(), getChunkMsg.getChunkNo());
                         ChunkSender chunkSender = new ChunkSender(this.MDRSock, (ChunkMsg) response, this);
-                        chunkSender.run(); // TODO make this part of thread pool
+                        chunkSender.run();
                     }
                     break;
                 case ChunkMsg.type:

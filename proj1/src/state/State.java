@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentMap;
 // this class is a singleton
 public class State implements Serializable {
     public static final String REPMAPNAME = "repMap.txt";
-    public static State st = State.importMap();
+    public static final State st = State.importMap();
 
     private final ConcurrentMap<String, FileInfo> replicationMap;
     private volatile Long maxDiskSpaceB;

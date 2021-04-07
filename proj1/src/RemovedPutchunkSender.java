@@ -2,6 +2,8 @@ import message.Message;
 import message.PutChunkMsg;
 
 import java.util.Random;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class RemovedPutchunkSender extends MessageSender<PutChunkMsg> {
@@ -12,7 +14,8 @@ public class RemovedPutchunkSender extends MessageSender<PutChunkMsg> {
     public RemovedPutchunkSender(SockThread sockThread, PutChunkMsg message, MessageHandler handler) {
         super(sockThread, message, handler);
         this.putchunkAlreadySent = new AtomicBoolean(false);
-        this.putChunkSender = new PutChunkSender(sockThread, message, handler);
+        ScheduledExecutorService threadPool = Executors.newSingleThreadScheduledExecutor();
+        this.putChunkSender = new PutChunkSender(sockThread, message, handler, threadPool);
     }
 
     private boolean refersToSamePutchunk(Message message) {
@@ -41,7 +44,7 @@ public class RemovedPutchunkSender extends MessageSender<PutChunkMsg> {
                     @Override
                     public void run() {
                         if (!putchunkAlreadySent.get()) {
-                            putChunkSender.run();
+                            putChunkSender.restart();
                         }
                     }
                 },
