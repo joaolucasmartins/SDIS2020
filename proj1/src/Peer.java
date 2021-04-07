@@ -202,14 +202,22 @@ public class Peer implements TestInterface {
     /* used by the TestApp (RMI) */
     @Override
     public String backup(String filePath, int replicationDegree) throws RemoteException {
+        // TODO
+        // P1 backup file A. P2 saves half the chunks and quits.
+        // P1 deletes file A.
+        // P2 joins.
+        // P1 stores file A again (same hash). Doesn't know which chunks are stored by P2 and
+        // can't just delete.
         try {
             String fileId = DigestFile.getHash(filePath);
+            if (this.protocolVersion.equals("2.0")) {
+                State.st.notToDeleteAnymore(fileId);
+            }
+
             List<byte[]> chunks = DigestFile.divideFile(filePath, replicationDegree);
             for (int i = 0; i < chunks.size(); ++i) {
                 // only backup chunks that don't have the desired replication degree
-                synchronized (State.st) {
-                    if (State.st.isChunkOk(fileId, i)) continue;
-                }
+                if (State.st.isChunkOk(fileId, i)) continue;
 
                 PutChunkMsg putChunkMsg = new PutChunkMsg(this.protocolVersion, this.id,
                         fileId, i, replicationDegree, chunks.get(i));
@@ -382,7 +390,7 @@ public class Peer implements TestInterface {
                     filesIInitiated.append("\t\tChunks:\n");
                     for (var chunkEntry : fileInfo.getAllChunks().entrySet()) {
                         filesIInitiated.append("\t\t\tID: ").append(chunkEntry.getKey())
-                                .append(" - Perceived rep.: ").append(chunkEntry.getValue()).append("\n");
+                                .append(" - Perceived rep.: ").append(chunkEntry.getValue().p1.size()).append("\n");
                     }
                 } else {
                     for (var chunkEntry : fileInfo.getAllChunks().entrySet()) {

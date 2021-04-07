@@ -143,18 +143,30 @@ public class State implements Serializable {
         this.undeletedFilesByPeer.get(peerId).add(fileId);
     }
 
-    public void removeUndeletedPair(String peerId, String fileId) {
+    public boolean removeUndeletedPair(String peerId, String fileId) {
         if (!this.undeletedFilesByPeer.containsKey(peerId))
-            return;
+            return false;
 
         Set<String> s = this.undeletedFilesByPeer.get(peerId);
         s.remove(fileId);
         if (s.size() == 0)
             this.undeletedFilesByPeer.remove(peerId);
+
+        return true;
     }
 
     public Set<String> getFilesUndeletedByPeer(String peerId) {
         return this.undeletedFilesByPeer.get(peerId);
+    }
+
+    public boolean notToDeleteAnymore(String fileId) {
+        boolean someoneHadIt = false;
+        for (var entry : this.undeletedFilesByPeer.entrySet()) {
+            if (this.removeUndeletedPair(entry.getKey(), fileId))
+                someoneHadIt = true;
+        }
+
+        return someoneHadIt;
     }
 
     // OTHER
