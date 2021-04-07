@@ -379,6 +379,7 @@ public class Peer implements TestInterface {
                         chunksIStore.append("\tChunk ID: ").append(fileId).append(" - ").append(chunkId).append("\n");
                         chunksIStore.append("\t\tSize: ").append(DigestFile.getChunkSize(fileId, chunkId)).append("\n");
                         chunksIStore.append("\t\tDesired replication degree:").append(fileInfo.getDesiredRep()).append("\n");
+                        chunksIStore.append("\t\tPeers storing this chunk:").append(fileInfo.getPeerStoringChunkPerceived(chunkId)).append("\n");
                         chunksIStore.append("\t\tPerceived replication degree:").append(perceivedRep).append("\n");
                     }
                 }

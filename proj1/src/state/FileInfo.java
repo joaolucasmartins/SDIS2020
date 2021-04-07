@@ -61,6 +61,10 @@ public class FileInfo implements Serializable {
         return this.chunkInfo.get(chunkNo).p1.size();
     }
 
+    public List<String> getPeerStoringChunkPerceived(int chunkNo) {
+        return this.chunkInfo.get(chunkNo).p1;
+    }
+
     public void incrementChunkDeg(int chunkNo, String peerId) {
         if (this.chunkInfo.containsKey(chunkNo)) {
             Pair<List<String>, Boolean> chunk = this.chunkInfo.get(chunkNo);
