@@ -70,11 +70,6 @@ public class FileInfo implements Serializable {
         return res;
     }
 
-    public void removePerceivedFile(Integer chunkNo, String fileId) {
-        if (this.chunkInfo.containsKey(chunkNo))
-            this.chunkInfo.get(chunkNo).p1.remove(fileId);
-    }
-
     public void removePerceivedFile(String fileId) {
         for (Integer chunk: this.chunkInfo.keySet())
             this.chunkInfo.get(chunk).p1.remove(fileId);

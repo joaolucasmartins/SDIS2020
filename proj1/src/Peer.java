@@ -265,18 +265,26 @@ public class Peer implements TestInterface {
     @Override
     public String delete(String filePath) throws RemoteException {
         try {
-            String fileHash = DigestFile.getHash(filePath);
-            DeleteMsg msg = new DeleteMsg(this.protocolVersion, this.id, fileHash);
-            this.MCSock.send(msg);
+            String fileId = DigestFile.getHash(filePath);
 
             if (this.protocolVersion.equals("2.0")) {
-                FileInfo fileInfo = State.st.getFileInfo(fileHash);
-                if (fileInfo == null)
-                    return "No information stored about file " + filePath + " with hash " + fileHash;
-                for (var peer : fileInfo.getPeersStoringFile())
-                    State.st.addUndeletedPair(peer, filePath);
+                synchronized (State.st) {
+                    // has initiated file
+                    FileInfo fileInfo = State.st.getFileInfo(fileId);
+                    if (fileInfo == null)
+                        return "No information stored about file " + filePath + " with hash " + fileId;
+                    // update the files to delete structure with everyone we know has this file
+                    for (var peer : fileInfo.getPeersStoringFile())
+                        State.st.addUndeletedPair(peer, fileId);
+                    // we don't want the old entry anymore
+                    State.st.removeFileEntry(fileId);
+                }
             }
-            return "Deleted file " + filePath + " with hash " + fileHash + ".";
+
+            DeleteMsg msg = new DeleteMsg(this.protocolVersion, this.id, fileId);
+            this.MCSock.send(msg);
+
+            return "Deleted file " + filePath + " with hash " + fileId + ".";
         } catch (IOException e) {
             throw new RemoteException("Deletion of " + filePath + " failed.");
         }

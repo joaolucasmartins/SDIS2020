@@ -16,11 +16,11 @@ public class State implements Serializable {
     private final ConcurrentMap<String, FileInfo> replicationMap;
     private volatile Long maxDiskSpaceB;
     private volatile transient long filledStorageSizeB;
-    private final Map<String, Set<String>> undeletedFilesByPeer; // <peerId -> set(fileId)>
+    private final ConcurrentMap<String, Set<String>> undeletedFilesByPeer; // <peerId -> set(fileId)>
 
     private State() {
         this.replicationMap = new ConcurrentHashMap<>();
-        this.undeletedFilesByPeer = new HashMap<>();
+        this.undeletedFilesByPeer = new ConcurrentHashMap<>();
         this.maxDiskSpaceB = -1L;
     }
 
@@ -137,8 +137,7 @@ public class State implements Serializable {
         this.replicationMap.get(fileId).decrementChunkDeg(chunkNo, peerId);
     }
 
-    // UNDELETED FILE-SPEER
-
+    // UNDELETED PEER FILES
     public void addUndeletedPair(String peerId, String fileId) {
         if (!this.undeletedFilesByPeer.containsKey(peerId))
             this.undeletedFilesByPeer.put(peerId, new HashSet<>(){{ add(fileId);}});
@@ -147,21 +146,16 @@ public class State implements Serializable {
 
     public void removeUndeletedPair(String peerId, String fileId) {
         if (!this.undeletedFilesByPeer.containsKey(peerId))
-            this.undeletedFilesByPeer.put(peerId, new HashSet<>());
-        this.undeletedFilesByPeer.get(peerId).remove(fileId);
-    }
+            return;
 
-    public boolean hasUndeletedPair(String peerId, String fileId) {
-        return this.undeletedFilesByPeer.containsKey(peerId) &&
-                this.undeletedFilesByPeer.get(peerId).contains(fileId);
+        Set<String> s = this.undeletedFilesByPeer.get(peerId);
+        s.remove(fileId);
+        if (s.size() == 0)
+            this.undeletedFilesByPeer.remove(peerId);
     }
 
     public Set<String> getFilesUndeletedByPeer(String peerId) {
         return this.undeletedFilesByPeer.get(peerId);
-    }
-
-    public void removeUndeletedFilesOfPeer(String peerId) {
-        this.undeletedFilesByPeer.remove(peerId);
     }
 
     // OTHER

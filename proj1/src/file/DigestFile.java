@@ -72,11 +72,14 @@ public class DigestFile {
         return (int) ((Files.size(file) / MAX_CHUNK_SIZE) + 1);
     }
 
-    /* deletes a directory (that represents a file by containing its chunks) and its contents */
-    public static void deleteFile(String fileId) {
+    /*  deletes a directory (that represents a file by containing its chunks) and its contents
+     *  returns true when the entry was present in the map
+     */
+    public static boolean deleteFile(String fileId) {
         File fileDir = new File(FILE_DIR + File.separator + fileId);
-        if (fileDir.listFiles() == null) return;
+        if (fileDir.listFiles() == null) return false;
 
+        if (State.st.getFileInfo(fileId) == null) return false;
         State.st.removeFileEntry(fileId);
 
         // to delete a directory, the directory must be empty
@@ -85,6 +88,7 @@ public class DigestFile {
             f.delete();
         }
         fileDir.delete();
+        return true;
     }
 
     public static long deleteChunk(String fileId, Integer chunkNo) {
