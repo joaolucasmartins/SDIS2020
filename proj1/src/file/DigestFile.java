@@ -161,13 +161,13 @@ public class DigestFile {
 
         String filePath = FILE_DIR + filename;
         String fileId = getHash(filename);
-        long fileSize = new File(FILE_DIR + filename).length();
+        long fileSize = new File(filePath).length();
         FileInputStream inputStream = new FileInputStream(filePath);
 
         State.st.addFileEntry(fileId, FILE_DIR + filename, replicationDegree);
 
         List<byte[]> ret = new ArrayList<>();
-        int n, i = 0;
+        int i = 0;
         long remainingSize = fileSize;
         while (remainingSize > 0) {
             int chunkSize;
@@ -177,9 +177,7 @@ public class DigestFile {
                 chunkSize = (int) remainingSize;
             }
             byte[] b = new byte[chunkSize];
-            n = inputStream.read(b, 0, chunkSize);
-            if (n != chunkSize)
-                System.err.println("WTF?");
+            inputStream.read(b, 0, chunkSize);
 
             remainingSize -= chunkSize;
 
@@ -192,6 +190,28 @@ public class DigestFile {
             ret.add(new byte[0]);
         }
 
+        return ret;
+    }
+
+    public static byte[] divideFileChunk(String filePath, int chunkNo) throws IOException {
+        // if (surpassesMaxChunks(filename))
+        //     throw new MasNaoTeVouAlocar();
+
+        FileInputStream inputStream = new FileInputStream(filePath);
+
+        long fileSize = new File(filePath).length();
+        long toSkip = (long) chunkNo * MAX_CHUNK_SIZE;
+        long chunkSize = fileSize - toSkip;
+        if (chunkSize > MAX_CHUNK_SIZE)
+            chunkSize = MAX_CHUNK_SIZE;
+
+        if (chunkSize == 0)
+            return new byte[0];
+
+        inputStream.skip(toSkip);
+
+        byte[] ret = new byte[(int) chunkSize];
+        inputStream.read(ret, 0, (int) chunkSize);
         return ret;
     }
 

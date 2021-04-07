@@ -103,7 +103,9 @@ public class MessageHandler {
                         State.st.setAmStoringChunk(backupMsg.getFileId(), backupMsg.getChunkNo(), true);
 
                         // unsub MDB when storage is full
-                        if (State.st.isStorageFull()) this.MDBSock.leave();
+                        if (this.protocolVersion.equals("2.0")) {
+                            if (State.st.isStorageFull()) this.MDBSock.leave();
+                        }
                     }
 
                     // send STORED reply message
@@ -126,8 +128,9 @@ public class MessageHandler {
                         DigestFile.deleteFile(delMsg.getFileId());
 
                         // sub MDB when storage is not full
-                        if (!State.st.isStorageFull())
-                            this.MDBSock.join();
+                        if (this.protocolVersion.equals("2.0")) {
+                            if (!State.st.isStorageFull()) this.MDBSock.join();
+                        }
                     }
                     break;
                 case GetChunkMsg.type:
@@ -146,25 +149,40 @@ public class MessageHandler {
                     break;
                 case RemovedMsg.type:
                     RemovedMsg removedMsg = (RemovedMsg) message;
+                    int repDegree;
+                    boolean amInitiator;
                     synchronized (State.st) {
                         State.st.decrementChunkDeg(removedMsg.getFileId(), removedMsg.getChunkNo());
-                        if (State.st.amIStoringChunk(removedMsg.getFileId(), removedMsg.getChunkNo()) &&
-                                !State.st.isChunkOk(removedMsg.getFileId(), removedMsg.getChunkNo())) {
-
-                            int repDegree = State.st.getFileDeg(removedMsg.getFileId());
-                            byte[] chunk = DigestFile.readChunk(removedMsg.getFileId() + File.separator + removedMsg.getChunkNo());
-                            PutChunkMsg putChunkMsg = new PutChunkMsg(this.protocolVersion, this.selfID,
-                                    removedMsg.getFileId(), removedMsg.getChunkNo(), repDegree, chunk);
-                            RemovedPutchunkSender removedPutchunkSender = new RemovedPutchunkSender(this.MDBSock, putChunkMsg, this);
-                            removedPutchunkSender.run();
-                        }
+                        if (State.st.isChunkOk(removedMsg.getFileId(), removedMsg.getChunkNo())) break;
+                        // we can only serve a chunk if:
+                        // we are storing it or we are the initiator
+                        amInitiator = State.st.isInitiator(removedMsg.getFileId());
+                        if (!State.st.amIStoringChunk(removedMsg.getFileId(), removedMsg.getChunkNo()) &&
+                                !amInitiator)
+                            break;
+                        repDegree = State.st.getFileDeg(removedMsg.getFileId());
                     }
+
+                    byte[] chunk;
+                    if (amInitiator) {
+                        chunk = DigestFile.divideFileChunk(State.st.getFileInfo(removedMsg.getFileId()).getFilePath(),
+                                removedMsg.getChunkNo());
+                    } else {
+                        chunk = DigestFile.readChunk(removedMsg.getFileId() + File.separator + removedMsg.getChunkNo());
+                    }
+
+                    PutChunkMsg putChunkMsg = new PutChunkMsg(this.protocolVersion, this.selfID,
+                            removedMsg.getFileId(), removedMsg.getChunkNo(), repDegree, chunk);
+                    RemovedPutchunkSender removedPutchunkSender = new RemovedPutchunkSender(this.MDBSock, putChunkMsg,
+                            this);
+                    removedPutchunkSender.run();
                     break;
                 default:
                     // unreachable
                     break;
             }
-        } catch (Exception e) {
+        } catch (
+                Exception e) {
             e.printStackTrace();
             System.err.println("Failed constructing reply for " + message.getType());
         }

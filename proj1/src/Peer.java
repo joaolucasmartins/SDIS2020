@@ -17,9 +17,6 @@ import java.util.*;
 import java.util.concurrent.*;
 
 public class Peer implements TestInterface {
-    private final ScheduledExecutorService backupThreadPool;
-    private final ExecutorService restoreThreadPool;
-
     private boolean closed = false;
     // cmd line arguments
     private final String protocolVersion;
@@ -42,9 +39,6 @@ public class Peer implements TestInterface {
         // parse args
         if (args.length != 9) usage();
 
-        this.backupThreadPool = Executors.newScheduledThreadPool(10);
-        this.restoreThreadPool = Executors.newFixedThreadPool(10);
-
         this.protocolVersion = args[0];
         this.id = args[1];
         // set the file dir name for the rest of the program (create it if missing)
@@ -65,6 +59,11 @@ public class Peer implements TestInterface {
         Integer MDRPort = Integer.parseInt(args[8]);
         this.MDRSock = this.createSocketThread(MDR, MDRPort);
 
+        if (this.protocolVersion.equals("2.0")) {
+            if (State.st.isStorageFull()) this.MDBSock.leave();
+            else this.MDBSock.join();
+        }
+
         this.messageHandler = new MessageHandler(this.id, this.protocolVersion,
                 this.MCSock, this.MDBSock, this.MDRSock);
 
@@ -82,8 +81,7 @@ public class Peer implements TestInterface {
         closed = true;
 
         // shutdown executors
-        this.backupThreadPool.shutdown();
-        this.restoreThreadPool.shutdown();
+        State.threadPool.shutdownNow();
 
         // cleanup the access point
         if (registry != null) {
@@ -213,8 +211,7 @@ public class Peer implements TestInterface {
 
                 PutChunkMsg putChunkMsg = new PutChunkMsg(this.protocolVersion, this.id,
                         fileId, i, replicationDegree, chunks.get(i));
-                PutChunkSender putChunkSender = new PutChunkSender(this.MDBSock, putChunkMsg,
-                        this.messageHandler, this.backupThreadPool);
+                PutChunkSender putChunkSender = new PutChunkSender(this.MDBSock, putChunkMsg, this.messageHandler);
                 putChunkSender.restart();
             }
         } catch (IOException e) {
@@ -242,7 +239,7 @@ public class Peer implements TestInterface {
 
                 GetChunkMsg msg = new GetChunkMsg(this.protocolVersion, this.id, fileId, currChunk);
                 GetChunkSender chunkSender = new GetChunkSender(this.MCSock, msg, this.messageHandler);
-                senders.add(new Pair<>(this.restoreThreadPool.submit(chunkSender), chunkSender));
+                senders.add(new Pair<>(State.threadPool.submit(chunkSender), chunkSender));
             }
 
             List<byte[]> chunks = new ArrayList<>(chunkNo);
@@ -255,6 +252,7 @@ public class Peer implements TestInterface {
                 chunks.add(sender.p2.getResponse().getChunk());
             }
 
+            // TODO remover este + "1" +
             DigestFile.assembleFile(filePath + "1", chunks);
             return "Restored file " + filePath + " with hash " + fileId + ".";
         } catch (Exception e) {

@@ -6,7 +6,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class GetChunkSender extends MessageSender<GetChunkMsg> {
     private static final int MAX_RETRANSMIT = 5;
-    private static final long COLLECTION_INTERVAL = 1; // in secs
+    private static final long COLLECTION_INTERVAL = 1000; // in ms
     private ChunkMsg response;
     private final AtomicBoolean gotChunk;
 
