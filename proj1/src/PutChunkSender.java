@@ -39,8 +39,8 @@ public class PutChunkSender extends MessageSender<PutChunkMsg> {
 
     public void restart() {
         super.send();
-        this.threadPool.schedule(this, (long) (COLLECTION_INTERVAL * Math.pow(2, this.i)),
-                TimeUnit.SECONDS);
+        this.threadPool.schedule(this,
+                (long) (COLLECTION_INTERVAL * Math.pow(2, this.i)), TimeUnit.SECONDS);
     }
 
     @Override
