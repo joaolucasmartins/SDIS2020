@@ -1,9 +1,10 @@
 package state;
 
 import file.DigestFile;
+import utils.Pair;
 
 import java.io.*;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -15,9 +16,11 @@ public class State implements Serializable {
     private final ConcurrentMap<String, FileInfo> replicationMap;
     private volatile Long maxDiskSpaceB;
     private volatile transient long filledStorageSizeB;
+    private final Map<String, Set<String>> undeletedFilesByPeer; // <peerId -> set(fileId)>
 
     private State() {
         this.replicationMap = new ConcurrentHashMap<>();
+        this.undeletedFilesByPeer = new HashMap<>();
         this.maxDiskSpaceB = -1L;
     }
 
@@ -132,6 +135,25 @@ public class State implements Serializable {
     public void decrementChunkDeg(String fileId, int chunkNo, String peerId) {
         if (!this.replicationMap.containsKey(fileId)) return;
         this.replicationMap.get(fileId).decrementChunkDeg(chunkNo, peerId);
+    }
+
+    // UNDELETED FILE-SPEER
+
+    public void addUndeletedPair(String peerId, String fileId) {
+        if (!this.undeletedFilesByPeer.containsKey(peerId))
+            this.undeletedFilesByPeer.put(peerId, new HashSet<>(){{ add(fileId);}});
+        this.undeletedFilesByPeer.get(peerId).add(fileId);
+    }
+
+    public void removeUndeletedPair(String peerId, String fileId) {
+        if (!this.undeletedFilesByPeer.containsKey(peerId))
+            this.undeletedFilesByPeer.put(peerId, new HashSet<>());
+        this.undeletedFilesByPeer.get(peerId).remove(fileId);
+    }
+
+    public boolean hasUndeletedPair(String peerId, String fileId) {
+        return this.undeletedFilesByPeer.containsKey(peerId) &&
+                this.undeletedFilesByPeer.get(peerId).contains(fileId);
     }
 
     // OTHER

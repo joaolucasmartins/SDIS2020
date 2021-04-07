@@ -73,6 +73,8 @@ public class MessageHandler {
             obs.notify(message);
         }
 
+        // See if guy who sents the message has to remove
+
         try {
             Message response;
             switch (message.getType()) {
@@ -159,6 +161,9 @@ public class MessageHandler {
                             RemovedPutchunkSender removedPutchunkSender = new RemovedPutchunkSender(this.MDBSock, putChunkMsg, this);
                             removedPutchunkSender.run();
                         }
+
+                        if (State.st.hasUndeletedPair(removedMsg.getSenderId(), removedMsg.getFileId()))
+                            State.st.removeUndeletedPair(removedMsg.getSenderId(), removedMsg.getFileId());
                     }
                     break;
                 default:

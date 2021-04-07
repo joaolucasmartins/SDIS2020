@@ -268,6 +268,11 @@ public class Peer implements TestInterface {
             String fileHash = DigestFile.getHash(filePath);
             DeleteMsg msg = new DeleteMsg(this.protocolVersion, this.id, fileHash);
             this.MCSock.send(msg);
+
+            if (this.protocolVersion.equals("2.0")) {
+                for (var peer : State.st.getFileInfo(filePath).getPeersStoringFile())
+                    State.st.addUndeletedPair(peer, filePath);
+            }
             return "Deleted file " + filePath + " with hash " + fileHash + ".";
         } catch (IOException e) {
             throw new RemoteException("Deletion of " + filePath + " failed.");
@@ -379,7 +384,7 @@ public class Peer implements TestInterface {
                         chunksIStore.append("\tChunk ID: ").append(fileId).append(" - ").append(chunkId).append("\n");
                         chunksIStore.append("\t\tSize: ").append(DigestFile.getChunkSize(fileId, chunkId)).append("\n");
                         chunksIStore.append("\t\tDesired replication degree:").append(fileInfo.getDesiredRep()).append("\n");
-                        chunksIStore.append("\t\tPeers storing this chunk:").append(fileInfo.getPeerStoringChunkPerceived(chunkId)).append("\n");
+                        chunksIStore.append("\t\tPeers storing this chunk:").append(fileInfo.getPeersStoringChunk(chunkId)).append("\n");
                         chunksIStore.append("\t\tPerceived replication degree:").append(perceivedRep).append("\n");
                     }
                 }

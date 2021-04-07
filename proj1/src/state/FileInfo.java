@@ -3,9 +3,7 @@ package state;
 import utils.Pair;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -61,8 +59,15 @@ public class FileInfo implements Serializable {
         return this.chunkInfo.get(chunkNo).p1.size();
     }
 
-    public List<String> getPeerStoringChunkPerceived(int chunkNo) {
+    public List<String> getPeersStoringChunk(int chunkNo) {
         return this.chunkInfo.get(chunkNo).p1;
+    }
+
+    public Set<String> getPeersStoringFile() {
+        Set<String> res = new HashSet<>();
+        for (var chunk : this.chunkInfo.keySet())
+            res.addAll(this.chunkInfo.get(chunk).p1);
+        return res;
     }
 
     public void incrementChunkDeg(int chunkNo, String peerId) {
