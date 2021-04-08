@@ -132,7 +132,7 @@ public class MessageHandler {
                     message.getFileId(), message.getChunkNo());
             chunkSender = new ChunkTCPSender(this.MDRSock, (ChunkTCPMsg) response, this);
         } else {
-            response = new ChunkMsg("1.0", this.selfID,
+            response = new ChunkMsg(this.protocolVersion, this.selfID,
                     message.getFileId(), message.getChunkNo());
             chunkSender = new ChunkSender(this.MDRSock, (ChunkMsg) response, this);
         }
@@ -240,13 +240,18 @@ public class MessageHandler {
         }
 
         // see if guy who sents the message has to remove some file
-        if (this.protocolVersion.equals("2.0") && message.getVersion().equals("2.0")) {
+        if (this.protocolVersion.equals("2.0")) {
+            // inform him of deletion if the peer supports it
             Set<String> files = State.st.getFilesUndeletedByPeer(message.getSenderId());
             if (files != null) {
                 for (String fileId : files) {
                     DeleteMsg deleteMsg = new DeleteMsg(this.protocolVersion, this.selfID, fileId);
                     this.MCSock.send(deleteMsg);
                 }
+            }
+            // just get rid of his reference otherwise
+            if (!message.getVersion().equals("2.0")) {
+                State.st.ignorePeerDeletedFiles(message.getSenderId());
             }
         }
     }

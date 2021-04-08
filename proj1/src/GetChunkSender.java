@@ -1,4 +1,5 @@
 import message.ChunkMsg;
+import message.ChunkTCPMsg;
 import message.GetChunkMsg;
 import message.Message;
 
@@ -21,9 +22,15 @@ public class GetChunkSender extends MessageSender<GetChunkMsg> {
 
     private boolean refersToSameChunk(Message message) {
         if (message.getType().equals(ChunkMsg.type)) {
-            ChunkMsg chunkMsg = (ChunkMsg) message;
-            return chunkMsg.getChunkNo() == this.message.getChunkNo() &&
-                    chunkMsg.getFileId().equals(this.message.getFileId());
+            if (message.getVersion().equals("2.0")) {
+                ChunkTCPMsg chunkMsg = (ChunkTCPMsg) message;
+                return chunkMsg.getChunkNo() == this.message.getChunkNo() &&
+                        chunkMsg.getFileId().equals(this.message.getFileId());
+            } else {
+                ChunkMsg chunkMsg = (ChunkMsg) message;
+                return chunkMsg.getChunkNo() == this.message.getChunkNo() &&
+                        chunkMsg.getFileId().equals(this.message.getFileId());
+            }
         }
         return false;
     }

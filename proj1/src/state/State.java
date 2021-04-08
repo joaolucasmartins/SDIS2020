@@ -163,6 +163,10 @@ public class State implements Serializable {
         return this.undeletedFilesByPeer.get(peerId);
     }
 
+    public void ignorePeerDeletedFiles(String peerId) {
+        this.undeletedFilesByPeer.remove(peerId);
+    }
+
     public boolean notToDeleteAnymore(String fileId) {
         boolean someoneHadIt = false;
         for (var entry : this.undeletedFilesByPeer.entrySet()) {
