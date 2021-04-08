@@ -1,7 +1,5 @@
 package message;
 
-import java.nio.charset.StandardCharsets;
-
 public abstract class Message {
     public static final String type = "CHUNK";
     public static String CRLF = String.valueOf((char) 0xD) + ((char) 0xA);

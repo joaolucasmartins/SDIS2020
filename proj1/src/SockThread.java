@@ -1,13 +1,19 @@
 import message.Message;
-import state.State;
 
 import java.io.IOException;
-import java.net.*;
+import java.net.DatagramPacket;
+import java.net.InetAddress;
+import java.net.MulticastSocket;
+import java.net.SocketException;
 import java.util.Arrays;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class SockThread implements Runnable {
     private final AtomicBoolean running = new AtomicBoolean(false);
+    private final ExecutorService threadPool =
+            Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
     private boolean inGroup;
     private final MulticastSocket sock;
@@ -50,6 +56,7 @@ public class SockThread implements Runnable {
 
     public void close() {
         this.leave();
+        this.threadPool.shutdown();
         this.sock.close();
     }
 
@@ -79,7 +86,7 @@ public class SockThread implements Runnable {
                 continue;
             }
 
-            State.threadPool.execute(
+            this.threadPool.execute(
                     () -> handler.handleMessage(Arrays.copyOfRange(packet.getData(), 0, packet.getLength()))
             );
         }

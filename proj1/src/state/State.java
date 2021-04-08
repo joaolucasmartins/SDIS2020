@@ -3,18 +3,14 @@ package state;
 import file.DigestFile;
 
 import java.io.*;
-import java.util.*;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 
 // this class is a singleton
 public class State implements Serializable {
-    public transient static final ScheduledExecutorService threadPool =
-            // Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors() + 1);
-            Executors.newScheduledThreadPool(20);
-
     public transient static final String REPMAPNAME = "repMap.txt";
     public transient static final State st = State.importMap();
 

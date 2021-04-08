@@ -5,13 +5,18 @@ import state.State;
 import utils.Pair;
 
 import java.io.IOException;
-import java.net.*;
+import java.net.InetAddress;
+import java.net.MulticastSocket;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
 
 public class Peer implements TestInterface {
     private boolean closed = false;
@@ -24,6 +29,10 @@ public class Peer implements TestInterface {
     private final SockThread MDBSock;
     private final SockThread MDRSock;
     private final MessageHandler messageHandler;
+
+    // thread pool
+    private final ScheduledExecutorService testAppThreadPool =
+            Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors() + 1);
 
     public Registry registry = null;
     public String rmiName = null;
@@ -78,7 +87,7 @@ public class Peer implements TestInterface {
         closed = true;
 
         // shutdown executors
-        State.threadPool.shutdownNow();
+        this.testAppThreadPool.shutdownNow();
 
         // cleanup the access point
         if (registry != null) {
@@ -248,7 +257,7 @@ public class Peer implements TestInterface {
                     chunkSender = new GetChunkTCPSender(this.MCSock, msg, this.messageHandler);
                 } else
                     chunkSender = new GetChunkSender(this.MCSock, msg, this.messageHandler);
-                senders.add(new Pair<>(State.threadPool.submit(chunkSender), chunkSender));
+                senders.add(new Pair<>(this.testAppThreadPool.submit(chunkSender), chunkSender));
             }
 
             List<byte[]> chunks = new ArrayList<>(chunkNo);
