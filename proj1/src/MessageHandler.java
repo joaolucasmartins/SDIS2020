@@ -1,12 +1,11 @@
 import file.DigestFile;
 import message.*;
-import state.FileInfo;
 import state.State;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static message.MessageCreator.createMessage;
 
@@ -16,7 +15,7 @@ public class MessageHandler {
     private final SockThread MCSock;
     private final SockThread MDBSock;
     private final SockThread MDRSock;
-    private final List<Observer> observers;
+    private final ConcurrentHashMap<Observer, Boolean> observers;
 
     public MessageHandler(String selfID, String protocolVersion, SockThread MCSock, SockThread MDBSock, SockThread MDRSock) {
         this.selfID = selfID;
@@ -27,11 +26,11 @@ public class MessageHandler {
         this.MCSock.setHandler(this);
         this.MDBSock.setHandler(this);
         this.MDRSock.setHandler(this);
-        this.observers = new CopyOnWriteArrayList<>();
+        this.observers = new ConcurrentHashMap<>();
     }
 
     public void addObserver(Observer obs) {
-        this.observers.add(obs);
+        this.observers.put(obs, false);
     }
 
     public void rmObserver(Observer obs) {
@@ -54,8 +53,14 @@ public class MessageHandler {
                 new byte[0] :
                 Arrays.copyOfRange(receivedData, headerCutoff + 2, receivedData.length);
 
+        // skip our own messages (multicast)
         if (header[Message.idField].equals(this.selfID)) {
-            // System.out.println("We were the ones that sent this message. Skipping..");
+            // System.out.println("We were the ones that sent this message. Skipping...");
+            return;
+        }
+        // only accept messages using our protocol version
+        if (!header[Message.versionField].equals(this.protocolVersion)) {
+            System.err.println("Received message using a different protocol version. Skipping...");
             return;
         }
 
@@ -71,7 +76,7 @@ public class MessageHandler {
         System.out.println("Received: " + message);
 
         // notify observers
-        for (Observer obs : this.observers) {
+        for (Observer obs : this.observers.keySet()) {
             obs.notify(message);
         }
 
@@ -80,42 +85,49 @@ public class MessageHandler {
             switch (message.getType()) {
                 case PutChunkMsg.type:
                     PutChunkMsg backupMsg = (PutChunkMsg) message;
-                    // do not handle files we initiated the backup of
+                    boolean iStoredTheChunk = false;
                     synchronized (State.st) {
+                        // do not handle files we initiated the backup of
                         if (State.st.isInitiator(backupMsg.getFileId())) break;
 
                         // always register the existence of this file
                         State.st.addFileEntry(backupMsg.getFileId(), backupMsg.getReplication());
-
-                        // do not store duplicated chunks
-                        if (State.st.amIStoringChunk(backupMsg.getFileId(), backupMsg.getChunkNo())) break;
-                        // if we surpass storage space
-                        if (!State.st.updateStorageSize(backupMsg.getChunk().length)) break;
-
-                        try {
-                            DigestFile.writeChunk(backupMsg.getFileId() + File.separator + backupMsg.getChunkNo(),
-                                    backupMsg.getChunk(), backupMsg.getChunk().length);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                            State.st.updateStorageSize(-backupMsg.getChunk().length);
-                            return;
-                        }
                         State.st.declareChunk(backupMsg.getFileId(), backupMsg.getChunkNo());
-                        // Add selfId to map Entry
-                        State.st.incrementChunkDeg(backupMsg.getFileId(), backupMsg.getChunkNo(), this.selfID);
-                        State.st.setAmStoringChunk(backupMsg.getFileId(), backupMsg.getChunkNo(), true);
 
-                        // unsub MDB when storage is full
-                        if (this.protocolVersion.equals("2.0")) {
-                            if (State.st.isStorageFull()) this.MDBSock.leave();
+                        // do not store duplicated chunks or if we surpass storage space
+                        if (!State.st.amIStoringChunk(backupMsg.getFileId(), backupMsg.getChunkNo())) {
+                            if (State.st.updateStorageSize(backupMsg.getChunk().length)) {
+                                try {
+                                    DigestFile.writeChunk(backupMsg.getFileId() + File.separator + backupMsg.getChunkNo(),
+                                            backupMsg.getChunk(), backupMsg.getChunk().length);
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                    State.st.updateStorageSize(-backupMsg.getChunk().length);
+                                }
+
+                                // Add self to map Entry
+                                State.st.incrementChunkDeg(backupMsg.getFileId(), backupMsg.getChunkNo(), this.selfID);
+                                State.st.setAmStoringChunk(backupMsg.getFileId(), backupMsg.getChunkNo(), true);
+                                iStoredTheChunk = true;
+
+                                // unsub MDB when storage is full
+                                if (this.protocolVersion.equals("2.0")) {
+                                    if (State.st.isStorageFull()) this.MDBSock.leave();
+                                }
+                            }
+                        }
+                        else {
+                            iStoredTheChunk = true;
                         }
                     }
 
-                    // send STORED reply message
-                    response = new StoredMsg(this.protocolVersion, this.selfID,
-                            backupMsg.getFileId(), backupMsg.getChunkNo());
-                    StoredSender storedSender = new StoredSender(this.MCSock, (StoredMsg) response, this);
-                    storedSender.run();
+                    // send STORED reply message if we stored the chunk/already had it
+                    if (iStoredTheChunk) {
+                        response = new StoredMsg(this.protocolVersion, this.selfID,
+                                backupMsg.getFileId(), backupMsg.getChunkNo());
+                        StoredSender storedSender = new StoredSender(this.MCSock, (StoredMsg) response, this);
+                        storedSender.run();
+                    }
                     break;
                 case StoredMsg.type:
                     StoredMsg storedMsg = (StoredMsg) message;
@@ -200,8 +212,7 @@ public class MessageHandler {
                     // unreachable
                     break;
             }
-        } catch (
-                Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
             System.err.println("Failed constructing reply for " + message.getType());
         }

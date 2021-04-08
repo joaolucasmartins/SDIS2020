@@ -4,7 +4,6 @@ import state.State;
 import java.io.IOException;
 import java.net.*;
 import java.util.Arrays;
-import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class SockThread implements Runnable {
