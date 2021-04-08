@@ -7,6 +7,8 @@ import utils.Pair;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -206,12 +208,6 @@ public class Peer implements TestInterface {
     /* used by the TestApp (RMI) */
     @Override
     public String backup(String filePath, int replicationDegree) throws RemoteException {
-        // TODO
-        // P1 backup file A. P2 saves half the chunks and quits.
-        // P1 deletes file A.
-        // P2 joins.
-        // P1 stores file A again (same hash). Doesn't know which chunks are stored by P2 and
-        // can't just delete.
         try {
             String fileId = DigestFile.getHash(filePath);
             if (this.protocolVersion.equals("2.0")) {
@@ -288,8 +284,8 @@ public class Peer implements TestInterface {
                 chunks.add(chunk);
             }
 
-            // TODO remover este + "1" +
-            DigestFile.assembleFile(filePath + "1", chunks);
+            Path path = Paths.get(filePath);
+            DigestFile.assembleFile(path.getFileName().toString(), chunks);
             return "Restored file " + filePath + " with hash " + fileId + ".";
         } catch (Exception e) {
             throw new RemoteException("Failed to restore the file " + filePath);
