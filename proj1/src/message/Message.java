@@ -10,7 +10,10 @@ public abstract class Message {
     public static int chunkField = 4;
     public static int replicationField = 5;
 
-    protected String header, version, id, fileId;
+    protected String header;
+    protected String version;
+    protected String id;
+    protected String fileId;
 
     public Message(String version, String id, String fileId) {
         this.header = version + " " +
@@ -21,6 +24,10 @@ public abstract class Message {
         this.version = version;
         this.id = id;
         this.fileId = fileId;
+    }
+
+    public String getVersion() {
+        return version;
     }
 
     public abstract String getType();

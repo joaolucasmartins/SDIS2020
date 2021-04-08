@@ -251,8 +251,9 @@ public class Peer implements TestInterface {
                 MessageSender<? extends Message> chunkSender;
                 if (this.protocolVersion.equals("2.0")) {
                     chunkSender = new GetChunkTCPSender(this.MCSock, msg, this.messageHandler);
-                } else
+                } else {
                     chunkSender = new GetChunkSender(this.MCSock, msg, this.messageHandler);
+                }
                 senders.add(new Pair<>(this.testAppThreadPool.submit(chunkSender), chunkSender));
             }
 
@@ -279,7 +280,7 @@ public class Peer implements TestInterface {
                     chunk = getChunkTCPSender.getResponse();
                 } else {
                     GetChunkSender getChunkSender = (GetChunkSender) sender.p2;
-                    chunk = getChunkSender.getResponse().getChunk();
+                    chunk = getChunkSender.getResponse();
                 }
                 chunks.add(chunk);
             }

@@ -15,8 +15,8 @@ public class GetChunkSender extends MessageSender<GetChunkMsg> {
         this.gotChunk = new AtomicBoolean(false);
     }
 
-    public ChunkMsg getResponse() {
-        return response;
+    public byte[] getResponse() {
+        return response.getChunk();
     }
 
     private boolean refersToSameChunk(Message message) {

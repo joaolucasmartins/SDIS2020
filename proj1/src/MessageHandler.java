@@ -38,6 +38,142 @@ public class MessageHandler {
         this.observers.remove(obs);
     }
 
+    private void handlePutChunkMsg(PutChunkMsg message) {
+        boolean iStoredTheChunk = false;
+        synchronized (State.st) {
+            // do not handle files we initiated the backup of
+            if (State.st.isInitiator(message.getFileId())) return;
+
+            // always register the existence of this file
+            State.st.addFileEntry(message.getFileId(), message.getReplication());
+            State.st.declareChunk(message.getFileId(), message.getChunkNo());
+
+            // do not store duplicated chunks or if we surpass storage space
+            if (!State.st.amIStoringChunk(message.getFileId(), message.getChunkNo())) {
+                if (State.st.updateStorageSize(message.getChunk().length)) {
+                    try {
+                        DigestFile.writeChunk(message.getFileId() + File.separator + message.getChunkNo(),
+                                message.getChunk(), message.getChunk().length);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        State.st.updateStorageSize(-message.getChunk().length);
+                    }
+
+                    // Add self to map Entry
+                    State.st.incrementChunkDeg(message.getFileId(), message.getChunkNo(), this.selfID);
+                    State.st.setAmStoringChunk(message.getFileId(), message.getChunkNo(), true);
+                    iStoredTheChunk = true;
+
+                    // unsub MDB when storage is full
+                    if (this.protocolVersion.equals("2.0")) {
+                        if (State.st.isStorageFull()) this.MDBSock.leave();
+                    }
+                }
+            } else {
+                iStoredTheChunk = true;
+            }
+        }
+
+        // send STORED reply message if we stored the chunk/already had it
+        if (iStoredTheChunk) {
+            StoredMsg response = new StoredMsg(this.protocolVersion, this.selfID,
+                    message.getFileId(), message.getChunkNo());
+            StoredSender storedSender = new StoredSender(this.MCSock, response, this);
+            storedSender.run();
+        }
+    }
+
+    private void handleStoredMsg(StoredMsg message) {
+        synchronized (State.st) {
+            State.st.incrementChunkDeg(message.getFileId(), message.getChunkNo(), message.getSenderId());
+        }
+    }
+
+    private void handleDeleteMsg(DeleteMsg message) {
+        boolean sendIDeleted;
+        synchronized (State.st) {
+            // delete the file on the file system
+            // also updates state entry and space filled
+            sendIDeleted = DigestFile.deleteFile(message.getFileId());
+
+            if (this.protocolVersion.equals("2.0")) {
+                // unsub MDB when storage is not full
+                if (!State.st.isStorageFull()) this.MDBSock.join();
+            }
+        }
+
+        // send IDELETED when we are 2.0 and the DELETE was 2.0
+        if (sendIDeleted && this.protocolVersion.equals("2.0") && message.getVersion().equals("2.0")) {
+            IDeletedMsg response = new IDeletedMsg(this.protocolVersion, this.selfID, message.getFileId());
+            IDeletedSender iDeletedSender = new IDeletedSender(this.MCSock, response, this);
+            iDeletedSender.run();
+        }
+    }
+
+    private void handleIDeletedMsg(IDeletedMsg message) {
+        // only handle IDELETED messages if we are 2.0
+        if (this.protocolVersion.equals("2.0")) {
+            synchronized (State.st) {
+                State.st.removeUndeletedPair(message.getSenderId(), message.getFileId());
+            }
+        }
+    }
+
+    private void handleGetChunkMsg(GetChunkMsg message) {
+        synchronized (State.st) {
+            if (!State.st.amIStoringChunk(message.getFileId(), message.getChunkNo()))
+                return;
+        }
+
+        Message response;
+        MessageSender<? extends Message> chunkSender;
+        if (this.protocolVersion.equals("2.0") && message.getVersion().equals("2.0")) {
+            response = new ChunkTCPMsg(this.protocolVersion, this.selfID,
+                    message.getFileId(), message.getChunkNo());
+            chunkSender = new ChunkTCPSender(this.MDRSock, (ChunkTCPMsg) response, this);
+        } else {
+            response = new ChunkMsg("1.0", this.selfID,
+                    message.getFileId(), message.getChunkNo());
+            chunkSender = new ChunkSender(this.MDRSock, (ChunkMsg) response, this);
+        }
+        chunkSender.run();
+    }
+
+    private void handleRemovedMsg(RemovedMsg message) {
+        int repDegree;
+        boolean amInitiator;
+        synchronized (State.st) {
+            State.st.decrementChunkDeg(message.getFileId(), message.getChunkNo(), message.getSenderId());
+            if (State.st.isChunkOk(message.getFileId(), message.getChunkNo()))
+                return;
+            // we can only serve a chunk if:
+            // we are storing it or we are the initiator
+            amInitiator = State.st.isInitiator(message.getFileId());
+            if (!amInitiator && !State.st.amIStoringChunk(message.getFileId(), message.getChunkNo()))
+                return;
+            repDegree = State.st.getFileDeg(message.getFileId());
+        }
+
+        try {
+            byte[] chunk;
+            if (amInitiator) {
+                chunk = DigestFile.divideFileChunk(State.st.getFileInfo(message.getFileId()).getFilePath(),
+                        message.getChunkNo());
+            } else {
+                chunk = DigestFile.readChunk(message.getFileId() + File.separator + message.getChunkNo());
+            }
+
+            PutChunkMsg putChunkMsg = new PutChunkMsg(this.protocolVersion, this.selfID,
+                    message.getFileId(), message.getChunkNo(), repDegree, chunk);
+            RemovedPutchunkSender removedPutchunkSender = new RemovedPutchunkSender(this.MDBSock, putChunkMsg,
+                    this);
+            removedPutchunkSender.run();
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.err.println("Failed constructing reply for " + message.getType());
+        }
+    }
+
     // TODO verify message came from the socket?
     public void handleMessage(byte[] receivedData) {
         int crlfCount = 0;
@@ -59,11 +195,6 @@ public class MessageHandler {
             // System.out.println("We were the ones that sent this message. Skipping...");
             return;
         }
-        // only accept messages using our protocol version
-        if (!header[Message.versionField].equals(this.protocolVersion)) {
-            System.err.println("Received message using a different protocol version. Skipping...");
-            return;
-        }
 
         // construct the reply
         Message message;
@@ -81,152 +212,35 @@ public class MessageHandler {
             obs.notify(message);
         }
 
-        try {
-            Message response;
-            switch (message.getType()) {
-                case PutChunkMsg.type:
-                    PutChunkMsg backupMsg = (PutChunkMsg) message;
-                    boolean iStoredTheChunk = false;
-                    synchronized (State.st) {
-                        // do not handle files we initiated the backup of
-                        if (State.st.isInitiator(backupMsg.getFileId())) break;
-
-                        // always register the existence of this file
-                        State.st.addFileEntry(backupMsg.getFileId(), backupMsg.getReplication());
-                        State.st.declareChunk(backupMsg.getFileId(), backupMsg.getChunkNo());
-
-                        // do not store duplicated chunks or if we surpass storage space
-                        if (!State.st.amIStoringChunk(backupMsg.getFileId(), backupMsg.getChunkNo())) {
-                            if (State.st.updateStorageSize(backupMsg.getChunk().length)) {
-                                try {
-                                    DigestFile.writeChunk(backupMsg.getFileId() + File.separator + backupMsg.getChunkNo(),
-                                            backupMsg.getChunk(), backupMsg.getChunk().length);
-                                } catch (IOException e) {
-                                    e.printStackTrace();
-                                    State.st.updateStorageSize(-backupMsg.getChunk().length);
-                                }
-
-                                // Add self to map Entry
-                                State.st.incrementChunkDeg(backupMsg.getFileId(), backupMsg.getChunkNo(), this.selfID);
-                                State.st.setAmStoringChunk(backupMsg.getFileId(), backupMsg.getChunkNo(), true);
-                                iStoredTheChunk = true;
-
-                                // unsub MDB when storage is full
-                                if (this.protocolVersion.equals("2.0")) {
-                                    if (State.st.isStorageFull()) this.MDBSock.leave();
-                                }
-                            }
-                        }
-                        else {
-                            iStoredTheChunk = true;
-                        }
-                    }
-
-                    // send STORED reply message if we stored the chunk/already had it
-                    if (iStoredTheChunk) {
-                        response = new StoredMsg(this.protocolVersion, this.selfID,
-                                backupMsg.getFileId(), backupMsg.getChunkNo());
-                        StoredSender storedSender = new StoredSender(this.MCSock, (StoredMsg) response, this);
-                        storedSender.run();
-                    }
-                    break;
-                case StoredMsg.type:
-                    StoredMsg storedMsg = (StoredMsg) message;
-                    synchronized (State.st) {
-                        State.st.incrementChunkDeg(storedMsg.getFileId(), storedMsg.getChunkNo(), storedMsg.getSenderId());
-                    }
-                    break;
-                case DeleteMsg.type:
-                    DeleteMsg delMsg = (DeleteMsg) message;
-                    boolean sendIDeleted;
-                    synchronized (State.st) {
-                        // delete the file on the file system
-                        // also updates state entry and space filled
-                        sendIDeleted = DigestFile.deleteFile(delMsg.getFileId());
-
-                        if (this.protocolVersion.equals("2.0")) {
-                            // unsub MDB when storage is not full
-                            if (!State.st.isStorageFull()) this.MDBSock.join();
-                        }
-                    }
-
-                    if (this.protocolVersion.equals("2.0") && sendIDeleted) {
-                        response = new IDeletedMsg(this.protocolVersion, this.selfID, delMsg.getFileId());
-                        IDeletedSender iDeletedSender = new IDeletedSender(this.MCSock, (IDeletedMsg) response,
-                                this);
-                        iDeletedSender.run();
-                    }
-                    break;
-                case IDeletedMsg.type:
-                    if (this.protocolVersion.equals("2.0")) {
-                        IDeletedMsg iDeletedMsg = (IDeletedMsg) message;
-                        synchronized (State.st) {
-                            State.st.removeUndeletedPair(iDeletedMsg.getSenderId(), iDeletedMsg.getFileId());
-                        }
-                    }
-                    break;
-                case GetChunkMsg.type:
-                    GetChunkMsg getChunkMsg = (GetChunkMsg) message;
-                    synchronized (State.st) {
-                        if (!State.st.amIStoringChunk(getChunkMsg.getFileId(), getChunkMsg.getChunkNo()))
-                            break;
-                    }
-
-                    MessageSender<? extends Message> chunkSender;
-                    if (this.protocolVersion.equals("2.0")) {
-                        response = new ChunkTCPMsg(this.protocolVersion, this.selfID,
-                                getChunkMsg.getFileId(), getChunkMsg.getChunkNo());
-                        chunkSender = new ChunkTCPSender(this.MDRSock, (ChunkTCPMsg) response, this);
-                    } else {
-                        response = new ChunkMsg(this.protocolVersion, this.selfID,
-                                getChunkMsg.getFileId(), getChunkMsg.getChunkNo());
-                        chunkSender = new ChunkSender(this.MDRSock, (ChunkMsg) response, this);
-                    }
-                    chunkSender.run();
-                    break;
-                case ChunkMsg.type:
-                    break;
-                case RemovedMsg.type:
-                    RemovedMsg removedMsg = (RemovedMsg) message;
-                    int repDegree;
-                    boolean amInitiator;
-                    synchronized (State.st) {
-                        State.st.decrementChunkDeg(removedMsg.getFileId(), removedMsg.getChunkNo(), removedMsg.getSenderId());
-                        if (State.st.isChunkOk(removedMsg.getFileId(), removedMsg.getChunkNo())) break;
-                        // we can only serve a chunk if:
-                        // we are storing it or we are the initiator
-                        amInitiator = State.st.isInitiator(removedMsg.getFileId());
-                        if (!State.st.amIStoringChunk(removedMsg.getFileId(), removedMsg.getChunkNo()) &&
-                                !amInitiator)
-                            break;
-                        repDegree = State.st.getFileDeg(removedMsg.getFileId());
-                    }
-
-                    byte[] chunk;
-                    if (amInitiator) {
-                        chunk = DigestFile.divideFileChunk(State.st.getFileInfo(removedMsg.getFileId()).getFilePath(),
-                                removedMsg.getChunkNo());
-                    } else {
-                        chunk = DigestFile.readChunk(removedMsg.getFileId() + File.separator + removedMsg.getChunkNo());
-                    }
-
-                    PutChunkMsg putChunkMsg = new PutChunkMsg(this.protocolVersion, this.selfID,
-                            removedMsg.getFileId(), removedMsg.getChunkNo(), repDegree, chunk);
-                    RemovedPutchunkSender removedPutchunkSender = new RemovedPutchunkSender(this.MDBSock, putChunkMsg,
-                            this);
-                    removedPutchunkSender.run();
-                    break;
-                default:
-                    // unreachable
-                    break;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.err.println("Failed constructing reply for " + message.getType());
+        switch (message.getType()) {
+            case PutChunkMsg.type:
+                handlePutChunkMsg((PutChunkMsg) message);
+                break;
+            case StoredMsg.type:
+                handleStoredMsg((StoredMsg) message);
+                break;
+            case DeleteMsg.type:
+                handleDeleteMsg((DeleteMsg) message);
+                break;
+            case IDeletedMsg.type:
+                handleIDeletedMsg((IDeletedMsg) message);
+                break;
+            case GetChunkMsg.type:
+                handleGetChunkMsg((GetChunkMsg) message);
+                break;
+            case ChunkMsg.type:
+                // skip
+                break;
+            case RemovedMsg.type:
+                handleRemovedMsg((RemovedMsg) message);
+                break;
+            default:
+                // unreachable
+                break;
         }
 
-        // See if guy who sents the message has to remove
-        if (this.protocolVersion.equals("2.0")) {
+        // see if guy who sents the message has to remove some file
+        if (this.protocolVersion.equals("2.0") && message.getVersion().equals("2.0")) {
             Set<String> files = State.st.getFilesUndeletedByPeer(message.getSenderId());
             if (files != null) {
                 for (String fileId : files) {
