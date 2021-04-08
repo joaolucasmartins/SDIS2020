@@ -10,7 +10,8 @@ import java.util.concurrent.ConcurrentMap;
 public class FileInfo implements Serializable {
     private String filePath = null;  // only set if we are the initiator
     private Integer desiredRep;
-    private final ConcurrentMap<Integer, Pair<List<String>, Boolean>> chunkInfo;
+    // chunkNo -> [Peers que deram store] + Se eu estou a dar store
+    private final ConcurrentMap<Integer, Pair<HashSet<String>, Boolean>> chunkInfo;
 
     public FileInfo(int desiredRep) {
         this.desiredRep = desiredRep;
@@ -24,7 +25,7 @@ public class FileInfo implements Serializable {
 
     public void declareChunk(int chunkNo) {
         if (!this.chunkInfo.containsKey(chunkNo))
-            this.chunkInfo.put(chunkNo, new Pair<>(new ArrayList<>(), false));
+            this.chunkInfo.put(chunkNo, new Pair<>(new HashSet<>(), false));
     }
 
     public boolean amIStoringChunk(int chunkNo) {
@@ -59,38 +60,39 @@ public class FileInfo implements Serializable {
         return this.chunkInfo.get(chunkNo).p1.size();
     }
 
-    public List<String> getPeersStoringChunk(int chunkNo) {
+    public HashSet<String> getPeersStoringChunk(int chunkNo) {
         return this.chunkInfo.get(chunkNo).p1;
     }
 
     public Set<String> getPeersStoringFile() {
         Set<String> res = new HashSet<>();
-        for (var chunk : this.chunkInfo.keySet())
-            res.addAll(this.chunkInfo.get(chunk).p1);
+        for (var chunkInfo : this.chunkInfo.entrySet()) {
+            res.addAll(chunkInfo.getValue().p1);
+        }
         return res;
     }
 
     public void incrementChunkDeg(int chunkNo, String peerId) {
         if (this.chunkInfo.containsKey(chunkNo)) {
-            Pair<List<String>, Boolean> chunk = this.chunkInfo.get(chunkNo);
+            Pair<HashSet<String>, Boolean> chunk = this.chunkInfo.get(chunkNo);
             chunk.p1.add(peerId);
         } else {
-            List<String> l = new ArrayList<>(){{ add(peerId); }};
-            this.chunkInfo.put(chunkNo, new Pair<>(l, false));
+            HashSet<String> s = new HashSet<>(){{ add(peerId); }};
+            this.chunkInfo.put(chunkNo, new Pair<>(s, false));
         }
     }
 
     public void decrementChunkDeg(int chunkNo, String peerId) {
         if (this.chunkInfo.containsKey(chunkNo)) {
-            Pair<List<String>, Boolean> chunk = this.chunkInfo.get(chunkNo);
+            Pair<HashSet<String>, Boolean> chunk = this.chunkInfo.get(chunkNo);
             chunk.p1.remove(peerId);
         } else {
-            this.chunkInfo.put(chunkNo, new Pair<>(new ArrayList<>(), false));
+            this.chunkInfo.put(chunkNo, new Pair<>(new HashSet<>(), false));
         }
     }
 
-    // iterator
-    public Map<Integer, Pair<List<String>, Boolean>> getAllChunks() {
+    // iteration
+    public Map<Integer, Pair<HashSet<String>, Boolean>> getAllChunks() {
         return this.chunkInfo;
     }
 

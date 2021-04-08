@@ -42,7 +42,6 @@ state | STATE)
 	;;
 esac
 
-cd build || exit 1
-java TestApp "$@"
+java -cp build TestApp "$@"
 
 exit 0

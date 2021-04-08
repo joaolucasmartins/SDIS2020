@@ -17,10 +17,12 @@ public class State implements Serializable {
     public transient static final String REPMAPNAME = "repMap.txt";
     public transient static final State st = State.importMap();
 
+    // fileId -> fileInformation
     private final ConcurrentMap<String, FileInfo> replicationMap;
     private volatile Long maxDiskSpaceB;
     private volatile transient long filledStorageSizeB;
-    private final ConcurrentMap<String, Set<String>> undeletedFilesByPeer; // <peerId -> set(fileId)>
+    // peerId -> set(fileId's que tem a dar delete)
+    private final ConcurrentMap<String, HashSet<String>> undeletedFilesByPeer;
 
     private State() {
         this.replicationMap = new ConcurrentHashMap<>();
@@ -72,7 +74,7 @@ public class State implements Serializable {
     }
 
     public boolean isStorageFull() {
-        return this.maxDiskSpaceB > 0 && (this.filledStorageSizeB < this.maxDiskSpaceB);
+        return this.maxDiskSpaceB >= 0 && (this.filledStorageSizeB >= this.maxDiskSpaceB);
     }
 
     public boolean isChunkOk(String fileId, int chunkNo) {
