@@ -9,8 +9,8 @@ import java.net.Socket;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class GetChunkTCPSender extends MessageSender<GetChunkMsg> {
-    private static final int MAX_RETRANSMIT = 1;
-    private static final long COLLECTION_INTERVAL = 4000; // in ms
+    private static final int MAX_RETRANSMIT = 5;
+    private static final long COLLECTION_INTERVAL = 1000; // in ms
     private ChunkTCPMsg chunkTCPMsg;
     private byte[] response;
     private final AtomicBoolean gotChunk;

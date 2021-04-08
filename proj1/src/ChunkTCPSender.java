@@ -4,13 +4,12 @@ import message.ChunkTCPMsg;
 import message.Message;
 
 import java.io.*;
-import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Random;
 
 public class ChunkTCPSender extends MessageSender<ChunkTCPMsg> {
-    private final static int MAX_TIMEOUT=400;
+    private final static int MAX_DELAY_TIMEOUT =400;
     private final static int MAX_TIMEOUT_TCP=10000;
     private boolean chunkAlreadySent;
     private byte[] chunk;
@@ -45,7 +44,7 @@ public class ChunkTCPSender extends MessageSender<ChunkTCPMsg> {
     @Override
     public void run() {
         Random random = new Random();
-        int timeout = random.nextInt(MAX_TIMEOUT + 1);
+        int timeout = random.nextInt(MAX_DELAY_TIMEOUT + 1);
         new java.util.Timer().schedule(
                 new java.util.TimerTask() {
                     @Override
