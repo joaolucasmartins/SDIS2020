@@ -3,18 +3,15 @@ import message.ChunkMsg;
 import message.ChunkTCPMsg;
 import message.Message;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.*;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Arrays;
 import java.util.Random;
 
 public class ChunkTCPSender extends MessageSender<ChunkTCPMsg> {
     private final static int MAX_TIMEOUT=400;
-    private final static int MAX_TIMEOUT_TCP=1000;
+    private final static int MAX_TIMEOUT_TCP=10000;
     private boolean chunkAlreadySent;
     private byte[] chunk;
 
@@ -53,10 +50,10 @@ public class ChunkTCPSender extends MessageSender<ChunkTCPMsg> {
                 new java.util.TimerTask() {
                     @Override
                     public void run() {
+                        System.out.println("Started running Chunk");
                         // Check if a connection was already opened
                         if (chunkAlreadySent)
                             return;
-                            ChunkTCPSender.super.send();
                         // Create Socket
                         ServerSocket serverSocket;
                         Socket socket = null;
@@ -77,32 +74,33 @@ public class ChunkTCPSender extends MessageSender<ChunkTCPMsg> {
                             return;
                         }
                         // Send ChunkTCP Message with the respective ip and port
-                        String ip = Arrays.toString(serverSocket.getInetAddress().getAddress());
                         Integer port = serverSocket.getLocalPort();
-                        ChunkTCPSender.super.message.setTCPAddress(ip, port);
+                        ChunkTCPSender.super.message.setTCPAddress(serverSocket.getInetAddress().getHostAddress(), port);
+                        System.out.println("Sent chunk");
                         ChunkTCPSender.super.send();
                         // Wait for someone to connect
                         try {
                             socket = serverSocket.accept();
                         } catch (IOException e) {
-                            System.err.println("Timedout while waiting for answer (ChunkTCP) TODO");
+                            System.err.println("Timed out while waiting for answer (ChunkTCP) TODO");
                             try {
                                 serverSocket.close();
                             } catch (IOException ioException) {
                                 System.err.println("Failed to close socket (ChunkTCP)");
                             }
-                            return;
+                            return; // TODO this.xau
                         }
                         try {
-                            socket.getOutputStream().write(ChunkTCPSender.this.chunk);
+                            DataOutputStream outputStream = new DataOutputStream(socket.getOutputStream());
+                            outputStream.write(ChunkTCPSender.this.chunk);
                         } catch (IOException e) {
                             System.err.println("Failed to send chunk message (ChunkTCP)");
-                            try {
-                                serverSocket.close();
-                            } catch (IOException ioException) {
-                                System.err.println("Failed to close socket (ChunkTCP)");
-                            }
-                            return;
+                        }
+                        try {
+                            socket.close();
+                            serverSocket.close();
+                        } catch (IOException ioException) {
+                            System.err.println("Failed to close socket (ChunkTCP)");
                         }
                     }
                 },

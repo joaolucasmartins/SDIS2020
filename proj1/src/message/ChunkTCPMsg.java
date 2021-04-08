@@ -1,7 +1,6 @@
 package message;
 
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 
 public class ChunkTCPMsg extends Message{
     public static final String type = "CHUNK";
@@ -18,7 +17,7 @@ public class ChunkTCPMsg extends Message{
                 chunkNo + " " +
                 Message.CRLF + Message.CRLF;
         this.chunkNo = chunkNo;
-        String[] b = Arrays.toString(body).split(" ", 2);
+        String[] b = new String(body).split(" ");
         this.setTCPAddress(b[0], Integer.parseInt(b[1]));
     }
 
@@ -64,6 +63,6 @@ public class ChunkTCPMsg extends Message{
 
     @Override
     public String toString() {
-        return type + " " + this.fileId + " chunkno " + this.chunkNo + " tcp port " + this.tcpPort;
+        return type + " " + this.fileId + " chunkno " + this.chunkNo + " ip " + this.ip + " tcp port " + this.tcpPort;
     }
 }
