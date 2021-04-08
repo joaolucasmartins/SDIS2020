@@ -28,6 +28,10 @@ public class Peer implements TestInterface {
     private final SockThread MDRSock;
     private final MessageHandler messageHandler;
 
+    // thread pool
+    private final ScheduledExecutorService testAppThreadPool =
+            Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors() + 1);
+
     public Registry registry = null;
     public String rmiName = null;
 
@@ -81,7 +85,7 @@ public class Peer implements TestInterface {
         closed = true;
 
         // shutdown executors
-        State.threadPool.shutdownNow();
+        this.testAppThreadPool.shutdownNow();
 
         // cleanup the access point
         if (registry != null) {
@@ -247,7 +251,7 @@ public class Peer implements TestInterface {
 
                 GetChunkMsg msg = new GetChunkMsg(this.protocolVersion, this.id, fileId, currChunk);
                 GetChunkSender chunkSender = new GetChunkSender(this.MCSock, msg, this.messageHandler);
-                senders.add(new Pair<>(State.threadPool.submit(chunkSender), chunkSender));
+                senders.add(new Pair<>(this.testAppThreadPool.submit(chunkSender), chunkSender));
             }
 
             List<byte[]> chunks = new ArrayList<>(chunkNo);

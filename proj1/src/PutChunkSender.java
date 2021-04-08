@@ -5,6 +5,8 @@ import state.State;
 
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class PutChunkSender extends MessageSender<PutChunkMsg> {
@@ -13,6 +15,8 @@ public class PutChunkSender extends MessageSender<PutChunkMsg> {
     private final Queue<Message> receivedMessages;
     private int i;
     private int storedCnt;
+    // used to reschedule himself // TODO pass threadpool to use
+    private final ScheduledExecutorService threadPool = Executors.newSingleThreadScheduledExecutor();
 
     public PutChunkSender(SockThread sockThread, PutChunkMsg msg, MessageHandler handler) {
         super(sockThread, msg, handler);
@@ -37,7 +41,7 @@ public class PutChunkSender extends MessageSender<PutChunkMsg> {
 
     public void restart() {
         super.send();
-        State.threadPool.schedule(this,
+        this.threadPool.schedule(this,
                 (long) (COLLECTION_INTERVAL * Math.pow(2, this.i)), TimeUnit.MILLISECONDS);
     }
 
