@@ -3,7 +3,13 @@ package message;
 import static java.lang.Integer.parseInt;
 
 public class MessageCreator {
-    public static Message createMessage(String[] header, byte[] body) throws NoSuchMessage {
+    final String protocolVersion;
+
+    public MessageCreator(String protocolVersion) {
+        this.protocolVersion = protocolVersion;
+    }
+
+    public Message createMessage(String[] header, byte[] body) throws NoSuchMessage {
         Message res = null;
         switch (header[Message.typeField]) {
             // Backup Subprotocol
@@ -29,10 +35,18 @@ public class MessageCreator {
                         parseInt(header[Message.chunkField]));
                 break;
             case (ChunkMsg.type):
-                res = new ChunkMsg(header[Message.versionField], header[Message.idField],
-                        header[Message.fileField],
-                        parseInt(header[Message.chunkField]),
-                        body);
+                if (this.protocolVersion.equals("2.0")) {
+                    res = new ChunkTCPMsg(header[Message.versionField], header[Message.idField],
+                            header[Message.fileField],
+                            parseInt(header[Message.chunkField]),
+                            body);
+                }
+                else  {
+                    res = new ChunkMsg(header[Message.versionField], header[Message.idField],
+                            header[Message.fileField],
+                            parseInt(header[Message.chunkField]),
+                            body);
+                }
                 break;
             // File deletion Subprotocol
             case (DeleteMsg.type):

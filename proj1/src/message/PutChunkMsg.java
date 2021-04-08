@@ -4,7 +4,6 @@ import java.nio.ByteBuffer;
 
 public class PutChunkMsg extends Message {
     public static final String type = "PUTCHUNK";
-    public static final int chunkIndex = 6;
     private final Integer chunkNo;
     private final Integer replication;
     private byte[] chunk;

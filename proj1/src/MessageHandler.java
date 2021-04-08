@@ -1,6 +1,5 @@
 import file.DigestFile;
 import message.*;
-import state.FileInfo;
 import state.State;
 
 import java.io.File;
@@ -8,11 +7,10 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import static message.MessageCreator.createMessage;
-
 public class MessageHandler {
     private final String selfID;
     private final String protocolVersion;
+    private final MessageCreator messageCreator;
     private final SockThread MCSock;
     private final SockThread MDBSock;
     private final SockThread MDRSock;
@@ -21,6 +19,7 @@ public class MessageHandler {
     public MessageHandler(String selfID, String protocolVersion, SockThread MCSock, SockThread MDBSock, SockThread MDRSock) {
         this.selfID = selfID;
         this.protocolVersion = protocolVersion;
+        this.messageCreator = new MessageCreator(protocolVersion);
         this.MCSock = MCSock;
         this.MDBSock = MDBSock;
         this.MDRSock = MDRSock;
@@ -62,7 +61,7 @@ public class MessageHandler {
         // construct the reply
         Message message;
         try {
-            message = createMessage(header, body);
+            message = messageCreator.createMessage(header, body);
         } catch (NoSuchMessage noSuchMessage) {
             System.err.println("No Such message " + header[Message.typeField]);
             return;
@@ -159,9 +158,16 @@ public class MessageHandler {
                             break;
                     }
 
-                    response = new ChunkMsg(this.protocolVersion, this.selfID,
-                            getChunkMsg.getFileId(), getChunkMsg.getChunkNo());
-                    ChunkSender chunkSender = new ChunkSender(this.MDRSock, (ChunkMsg) response, this);
+                    MessageSender<? extends Message> chunkSender;
+                    if (this.protocolVersion.equals("2.0")) {
+                        response = new ChunkTCPMsg(this.protocolVersion, this.selfID,
+                                getChunkMsg.getFileId(), getChunkMsg.getChunkNo());
+                        chunkSender = new ChunkTCPSender(this.MDRSock, (ChunkTCPMsg) response, this);
+                    } else {
+                        response = new ChunkMsg(this.protocolVersion, this.selfID,
+                                getChunkMsg.getFileId(), getChunkMsg.getChunkNo());
+                        chunkSender = new ChunkSender(this.MDRSock, (ChunkMsg) response, this);
+                    }
                     chunkSender.run();
                     break;
                 case ChunkMsg.type:

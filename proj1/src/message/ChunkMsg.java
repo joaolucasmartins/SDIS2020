@@ -5,11 +5,9 @@ import file.DigestFile;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 
 public class ChunkMsg extends Message {
     public static final String type = "CHUNK";
-    public static final int CRLFField = 5;
     private final int chunkNo;
     private byte[] chunk;
 

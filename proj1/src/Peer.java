@@ -1,10 +1,7 @@
 import file.DigestFile;
+import message.*;
 import state.FileInfo;
 import state.State;
-import message.PutChunkMsg;
-import message.GetChunkMsg;
-import message.RemovedMsg;
-import message.DeleteMsg;
 import utils.Pair;
 
 import java.io.IOException;
@@ -236,7 +233,7 @@ public class Peer implements TestInterface {
             int chunkNo = DigestFile.getChunkCount(filePath); // TODO Esperar até o ultimo ter size 0?
             if (chunkNo < 0) return "file " + filePath + " is too big";
 
-            List<Pair<Future<?>, GetChunkSender>> senders = new ArrayList<>();
+            List<Pair<Future<?>, MessageSender<? extends Message>>> senders = new ArrayList<>();
             for (int currChunk = 0; currChunk < chunkNo; ++currChunk) {
                 // this is redundant because we have to be the initiator peer to restore a file
                 // if (State.st.amIStoringChunk(fileId, currChunk)) {
@@ -246,18 +243,40 @@ public class Peer implements TestInterface {
                 // }
 
                 GetChunkMsg msg = new GetChunkMsg(this.protocolVersion, this.id, fileId, currChunk);
-                GetChunkSender chunkSender = new GetChunkSender(this.MCSock, msg, this.messageHandler);
+                MessageSender<? extends Message> chunkSender;
+                if (this.protocolVersion.equals("2.0")) {
+                    chunkSender = new GetChunkTCPSender(this.MCSock, msg, this.messageHandler);
+                } else
+                    chunkSender = new GetChunkSender(this.MCSock, msg, this.messageHandler);
                 senders.add(new Pair<>(State.threadPool.submit(chunkSender), chunkSender));
             }
 
             List<byte[]> chunks = new ArrayList<>(chunkNo);
             for (var sender : senders) {
                 sender.p1.get();
+                int chunkNumber;
+                byte[] chunk;
+                if (this.protocolVersion.equals("2.0")) {
+                    GetChunkTCPSender getChunkTCPSender = (GetChunkTCPSender) sender.p2;
+                    chunkNumber = getChunkTCPSender.message.getChunkNo();
+                } else {
+                    GetChunkSender getChunkSender = (GetChunkSender) sender.p2;
+                    chunkNumber = getChunkSender.message.getChunkNo();
+                }
+
                 if (!sender.p2.success.get()) {
                     throw new RemoteException("Failed to restore the file " + filePath +
-                            " because of a missing chunk: " + sender.p2.message.getChunkNo());
+                            " because of a missing chunk: " + chunkNumber);
                 }
-                chunks.add(sender.p2.getResponse().getChunk());
+
+                if (this.protocolVersion.equals("2.0")) {
+                    GetChunkTCPSender getChunkTCPSender = (GetChunkTCPSender) sender.p2;
+                    chunk = getChunkTCPSender.getResponse();
+                } else {
+                    GetChunkSender getChunkSender = (GetChunkSender) sender.p2;
+                    chunk = getChunkSender.getResponse().getChunk();
+                }
+                chunks.add(chunk);
             }
 
             // TODO remover este + "1" +
