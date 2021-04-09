@@ -1,7 +1,7 @@
 **/.idea
 proj1/out
 proj1/build
-proj1/files-*
+proj1/peer-*
 
 # https://github.com/github/gitignore/blob/master/Java.gitignore
 # Compiled class file

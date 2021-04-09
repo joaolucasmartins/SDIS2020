@@ -109,7 +109,7 @@ public class Peer implements TestInterface {
     }
 
     private void verifyModifiedFiles() {
-        String errorMsg = "";
+        String errorMsg;
         Map<String, FileInfo> fileMap = State.st.getAllFilesInfo();
         for (String oldFileId : fileMap.keySet()) {
             FileInfo fileInfo = fileMap.get(oldFileId);
@@ -344,10 +344,10 @@ public class Peer implements TestInterface {
                 // update the files to delete structure with everyone we know has this file
                 for (var peer : fileInfo.getPeersStoringFile())
                     State.st.addUndeletedPair(peer, fileId);
-                // we don't want the old entry anymore
-                State.st.removeFileEntry(fileId);
             }
         }
+        // we don't want the old entry anymore
+        State.st.removeFileEntry(fileId);
 
         DeleteMsg msg = new DeleteMsg(this.protocolVersion, this.id, fileId);
         this.MCSock.send(msg);

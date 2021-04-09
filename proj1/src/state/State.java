@@ -219,12 +219,12 @@ public class State implements Serializable {
     public static State importMap() {
         State ret;
         try {
-            FileInputStream fileIn = new FileInputStream(DigestFile.FILE_DIR + File.separator + REPMAPNAME);
+            FileInputStream fileIn = new FileInputStream(DigestFile.PEER_DIR + REPMAPNAME);
             ObjectInputStream in = new ObjectInputStream(fileIn);
             ret = (State) in.readObject();
             in.close();
             fileIn.close();
-        } catch (IOException | ClassNotFoundException i) {
+        } catch (IOException | ClassNotFoundException e) {
             ret = new State();
         }
 
@@ -235,13 +235,13 @@ public class State implements Serializable {
 
     public static void exportMap() throws IOException {
         try {
-            FileOutputStream fileOut = new FileOutputStream(DigestFile.FILE_DIR + File.separator + REPMAPNAME);
+            FileOutputStream fileOut = new FileOutputStream(DigestFile.PEER_DIR + REPMAPNAME);
             ObjectOutputStream out = new ObjectOutputStream(fileOut);
             out.writeObject(State.st);
             out.close();
             fileOut.close();
-        } catch (IOException i) {
-            i.printStackTrace();
+        } catch (IOException e) {
+            System.err.println("Program state saving to non-volatile storage failed.");
         }
     }
 }

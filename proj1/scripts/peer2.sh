@@ -6,4 +6,4 @@ else
   version="2.0"
 fi
 
-scripts/peer.sh "$version" secondrth rmithing2 224.0.0.1 8081 224.0.0.2 8082 224.0.0.3 8083
+scripts/peer.sh "$version" 2 rmithing2 224.0.0.1 8081 224.0.0.2 8082 224.0.0.3 8083
