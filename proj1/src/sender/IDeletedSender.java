@@ -1,19 +1,21 @@
+package sender;
+
+import message.IDeletedMsg;
 import message.Message;
-import message.StoredMsg;
 
 import java.util.Random;
 
-public class StoredSender extends MessageSender<StoredMsg> {
+public class IDeletedSender extends MessageSender<IDeletedMsg> {
     private final static int MAX_TIMEOUT = 400;
 
-    public StoredSender(SockThread sockThread, StoredMsg message, MessageHandler handler) {
+    public IDeletedSender(SockThread sockThread, IDeletedMsg message, MessageHandler handler) {
         super(sockThread, message, handler);
         this.xau();
     }
 
     @Override
     public void notify(Message notification) {
-    } // Do nothing
+    }
 
     @Override
     public void run() {
@@ -23,7 +25,7 @@ public class StoredSender extends MessageSender<StoredMsg> {
                 new java.util.TimerTask() {
                     @Override
                     public void run() {
-                        StoredSender.super.send();
+                        IDeletedSender.super.send();
                     }
                 },
                 timeout

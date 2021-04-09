@@ -1,8 +1,9 @@
+package sender;
+
 import file.DigestFile;
 import message.*;
 import state.State;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Set;
@@ -172,7 +173,7 @@ public class MessageHandler {
     }
 
     // TODO verify message came from the socket?
-    public void handleMessage(byte[] receivedData) {
+    public void handleMessage(String sockName, byte[] receivedData) {
         int crlfCount = 0;
         int headerCutoff;
         for (headerCutoff = 0; headerCutoff < receivedData.length - 1; ++headerCutoff) {
@@ -202,8 +203,13 @@ public class MessageHandler {
             return;
         }
         assert message != null;
-        System.out.println("Received: " + message);
 
+        // skip message that came from the wrong socket.
+        if (!message.getSockName().equals(sockName)) {
+            System.err.println("Skipping message that came from the wrong socket.");
+        }
+
+        System.out.println("Received: " + message);
         // notify observers
         for (Observer obs : this.observers.keySet()) {
             obs.notify(message);

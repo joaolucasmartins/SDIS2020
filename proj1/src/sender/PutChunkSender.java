@@ -1,3 +1,5 @@
+package sender;
+
 import message.Message;
 import message.PutChunkMsg;
 import message.StoredMsg;
@@ -12,10 +14,10 @@ public class PutChunkSender extends MessageSender<PutChunkMsg> {
     private static final int MAX_RETRANSMIT = 5;
     private static final long COLLECTION_INTERVAL = 1000; // in ms
     private final Queue<Message> receivedMessages;
-    private int i;
-    private int storedCnt;
     // used to reschedule himself // TODO pass threadpool to use
     private final ScheduledExecutorService threadPool = Executors.newSingleThreadScheduledExecutor();
+    private int i;
+    private int storedCnt;
 
     public PutChunkSender(SockThread sockThread, PutChunkMsg msg, MessageHandler handler) {
         super(sockThread, msg, handler);

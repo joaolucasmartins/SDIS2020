@@ -14,6 +14,11 @@ public class DeleteMsg extends Message {
                 Message.CRLF + Message.CRLF;
     }
 
+    @Override
+    public String getSockName() {
+        return "MC";
+    }
+
     public String getFileId() {
         return fileId;
     }
@@ -30,6 +35,6 @@ public class DeleteMsg extends Message {
 
     @Override
     public String toString() {
-        return type + " " + this.fileId;
+        return type + " " + this.fileId + " from " + super.id;
     }
 }

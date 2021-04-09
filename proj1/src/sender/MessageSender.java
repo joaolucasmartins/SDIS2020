@@ -1,12 +1,14 @@
+package sender;
+
 import message.Message;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class MessageSender<T extends Message> implements Runnable, Observer {
-    protected SockThread sockThread;
-    protected T message;
     protected final AtomicBoolean success;
     private final MessageHandler handler;
+    protected SockThread sockThread;
+    protected T message;
 
     public MessageSender(SockThread sockThread, T message, MessageHandler handler) {
         this.sockThread = sockThread;
@@ -14,6 +16,14 @@ public abstract class MessageSender<T extends Message> implements Runnable, Obse
         this.success = new AtomicBoolean(false);
         this.handler = handler;
         this.handler.addObserver(this);
+    }
+
+    public boolean getSuccess() {
+        return this.success.get();
+    }
+
+    public T getMessage() {
+        return this.message;
     }
 
     protected void xau() {

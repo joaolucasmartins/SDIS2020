@@ -31,6 +31,11 @@ public class GetChunkMsg extends Message {
     }
 
     @Override
+    public String getSockName() {
+        return "MC";
+    }
+
+    @Override
     public String getType() {
         return type;
     }
@@ -42,6 +47,6 @@ public class GetChunkMsg extends Message {
 
     @Override
     public String toString() {
-        return type + " " + this.fileId + " chunkno. " + this.chunkNo;
+        return type + " " + this.fileId + " chunkno. " + this.chunkNo + " from " + super.id;
     }
 }

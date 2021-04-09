@@ -22,7 +22,7 @@ public class DigestFile {
     private static final int MAX_CHUNK_SIZE = 64000;
     private static final int MAX_CHUNK_NUM = 999999;
     public static String PEER_DIR = "." + File.separator + "peer" + File.separator;
-    public static String FILE_DIR = PEER_DIR + "files" + File.separator;
+    public static String FILE_DIR = PEER_DIR + "stored" + File.separator;
     public static String RESTORE_DIR = PEER_DIR + "restored" + File.separator;
 
     public static void setFileDir(String id) {
@@ -30,7 +30,7 @@ public class DigestFile {
         File peerDir = new File(PEER_DIR);
         peerDir.mkdirs();
 
-        FILE_DIR = PEER_DIR + "files" + File.separator;
+        FILE_DIR = PEER_DIR + "stored" + File.separator;
         File fileDir = new File(FILE_DIR);
         fileDir.mkdirs();
 
@@ -213,8 +213,8 @@ public class DigestFile {
 
     public static byte[] divideFileChunk(String filename, int chunkNo) throws IOException {
         Path filePath = Paths.get(PEER_DIR + filename);
-         if (surpassesMaxChunks(filePath))
-             throw new MasNaoTeVouAlocar();
+        if (surpassesMaxChunks(filePath))
+            throw new MasNaoTeVouAlocar();
 
         FileInputStream inputStream = new FileInputStream(filePath.toFile());
 

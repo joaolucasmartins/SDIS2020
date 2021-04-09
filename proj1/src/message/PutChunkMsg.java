@@ -6,7 +6,7 @@ public class PutChunkMsg extends Message {
     public static final String type = "PUTCHUNK";
     private final Integer chunkNo;
     private final Integer replication;
-    private byte[] chunk;
+    private final byte[] chunk;
 
     public PutChunkMsg(String version, String id, String fileId, int chunkNo, int replication, byte[] chunk) {
         super(version, id, fileId);
@@ -47,6 +47,11 @@ public class PutChunkMsg extends Message {
     }
 
     @Override
+    public String getSockName() {
+        return "MDB";
+    }
+
+    @Override
     public String getType() {
         return type;
     }
@@ -58,6 +63,6 @@ public class PutChunkMsg extends Message {
 
     @Override
     public String toString() {
-        return type + " " + this.fileId + " chunkno. " + this.chunkNo + " rep. " + this.replication;
+        return type + " " + this.fileId + " chunkno. " + this.chunkNo + " rep. " + this.replication + " from " + super.id;
     }
 }

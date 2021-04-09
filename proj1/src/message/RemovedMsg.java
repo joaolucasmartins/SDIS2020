@@ -20,6 +20,11 @@ public class RemovedMsg extends Message {
     }
 
     @Override
+    public String getSockName() {
+        return "MC";
+    }
+
+    @Override
     public String getType() {
         return type;
     }
@@ -31,6 +36,6 @@ public class RemovedMsg extends Message {
 
     @Override
     public String toString() {
-        return type + " " + this.fileId;
+        return type + " " + this.fileId + " from " + super.id;
     }
 }

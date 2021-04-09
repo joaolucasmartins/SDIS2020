@@ -30,7 +30,10 @@ public abstract class Message {
         return version;
     }
 
+    public abstract String getSockName();
+
     public abstract String getType();
+
     public abstract int getHeaderLen();
 
     public String getFileId() {

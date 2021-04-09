@@ -1,3 +1,5 @@
+package sender;
+
 import message.Message;
 
 import java.io.IOException;
@@ -14,20 +16,25 @@ public class SockThread implements Runnable {
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final ExecutorService threadPool =
             Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-
-    private boolean inGroup;
+    private final String name;
     private final MulticastSocket sock;
     private final InetAddress group;
     private final Integer port;
+    private boolean inGroup;
     private MessageHandler handler;
 
-    public SockThread(MulticastSocket sock, InetAddress group, Integer port) {
+    public SockThread(String name, MulticastSocket sock, InetAddress group, Integer port) {
+        this.name = name;
         this.sock = sock;
         this.group = group;
         this.port = port;
 
         this.inGroup = false;
         this.join();
+    }
+
+    public String getName() {
+        return this.name;
     }
 
     public void join() {
@@ -87,7 +94,8 @@ public class SockThread implements Runnable {
             }
 
             this.threadPool.execute(
-                    () -> handler.handleMessage(Arrays.copyOfRange(packet.getData(), 0, packet.getLength()))
+                    () -> handler.handleMessage(this.getName(),
+                            Arrays.copyOfRange(packet.getData(), 0, packet.getLength()))
             );
         }
     }

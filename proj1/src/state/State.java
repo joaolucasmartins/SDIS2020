@@ -1,7 +1,6 @@
 package state;
 
 import file.DigestFile;
-import utils.Pair;
 
 import java.io.*;
 import java.util.*;
@@ -18,10 +17,10 @@ public class State implements Serializable {
 
     // fileId -> fileInformation
     private final ConcurrentMap<String, FileInfo> replicationMap;
-    private volatile Long maxDiskSpaceB;
-    private volatile transient long filledStorageSizeB;
     // peerId -> set(fileId's que tem a dar delete)
     private final ConcurrentMap<String, HashSet<String>> undeletedFilesByPeer;
+    private volatile Long maxDiskSpaceB;
+    private volatile transient long filledStorageSizeB;
 
     private State() {
         this.tasks = new ConcurrentHashMap<>();
@@ -32,6 +31,36 @@ public class State implements Serializable {
 
     public static State getState() {
         return st;
+    }
+
+    // FOR SERIALIZATION
+    public static State importMap() {
+        State ret;
+        try {
+            FileInputStream fileIn = new FileInputStream(DigestFile.PEER_DIR + REPMAPNAME);
+            ObjectInputStream in = new ObjectInputStream(fileIn);
+            ret = (State) in.readObject();
+            in.close();
+            fileIn.close();
+        } catch (IOException | ClassNotFoundException e) {
+            ret = new State();
+        }
+
+        ret.initFilledStorage();
+
+        return ret;
+    }
+
+    public static void exportMap() throws IOException {
+        try {
+            FileOutputStream fileOut = new FileOutputStream(DigestFile.PEER_DIR + REPMAPNAME);
+            ObjectOutputStream out = new ObjectOutputStream(fileOut);
+            out.writeObject(State.st);
+            out.close();
+            fileOut.close();
+        } catch (IOException e) {
+            System.err.println("Program state saving to non-volatile storage failed.");
+        }
     }
 
     // RUNNING TASKS
@@ -54,12 +83,12 @@ public class State implements Serializable {
         return maxDiskSpaceB;
     }
 
-    public Long getMaxDiskSpaceKB() {
-        return maxDiskSpaceB < 0 ? -1 : maxDiskSpaceB / 1000;
-    }
-
     public void setMaxDiskSpaceB(Long maxDiskSpaceB) {
         this.maxDiskSpaceB = maxDiskSpaceB;
+    }
+
+    public Long getMaxDiskSpaceKB() {
+        return maxDiskSpaceB < 0 ? -1 : maxDiskSpaceB / 1000;
     }
 
     public void initFilledStorage() {
@@ -172,7 +201,9 @@ public class State implements Serializable {
     // UNDELETED PEER FILES
     public void addUndeletedPair(String peerId, String fileId) {
         if (!this.undeletedFilesByPeer.containsKey(peerId))
-            this.undeletedFilesByPeer.put(peerId, new HashSet<>(){{ add(fileId);}});
+            this.undeletedFilesByPeer.put(peerId, new HashSet<>() {{
+                add(fileId);
+            }});
         this.undeletedFilesByPeer.get(peerId).add(fileId);
     }
 
@@ -225,35 +256,5 @@ public class State implements Serializable {
 
     public Map<String, FileInfo> getAllFilesInfo() {
         return this.replicationMap;
-    }
-
-    // FOR SERIALIZATION
-    public static State importMap() {
-        State ret;
-        try {
-            FileInputStream fileIn = new FileInputStream(DigestFile.PEER_DIR + REPMAPNAME);
-            ObjectInputStream in = new ObjectInputStream(fileIn);
-            ret = (State) in.readObject();
-            in.close();
-            fileIn.close();
-        } catch (IOException | ClassNotFoundException e) {
-            ret = new State();
-        }
-
-        ret.initFilledStorage();
-
-        return ret;
-    }
-
-    public static void exportMap() throws IOException {
-        try {
-            FileOutputStream fileOut = new FileOutputStream(DigestFile.PEER_DIR + REPMAPNAME);
-            ObjectOutputStream out = new ObjectOutputStream(fileOut);
-            out.writeObject(State.st);
-            out.close();
-            fileOut.close();
-        } catch (IOException e) {
-            System.err.println("Program state saving to non-volatile storage failed.");
-        }
     }
 }

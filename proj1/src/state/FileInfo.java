@@ -10,10 +10,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 public class FileInfo implements Serializable {
-    private String filePath = null;  // only set if we are the initiator
-    private Integer desiredRep;
     // chunkNo -> [Peers que deram store] + Se eu estou a dar store
     private final ConcurrentMap<Integer, Pair<HashSet<String>, Boolean>> chunkInfo;
+    private String filePath = null;  // only set if we are the initiator
+    private Integer desiredRep;
 
     public FileInfo(int desiredRep) {
         this.desiredRep = desiredRep;
@@ -79,7 +79,9 @@ public class FileInfo implements Serializable {
             Pair<HashSet<String>, Boolean> chunk = this.chunkInfo.get(chunkNo);
             chunk.p1.add(peerId);
         } else {
-            HashSet<String> s = new HashSet<>(){{ add(peerId); }};
+            HashSet<String> s = new HashSet<>() {{
+                add(peerId);
+            }};
             this.chunkInfo.put(chunkNo, new Pair<>(s, false));
         }
     }

@@ -1,9 +1,10 @@
+package sender;
+
 import file.DigestFile;
 import message.ChunkMsg;
 import message.Message;
 
 import java.io.DataOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;

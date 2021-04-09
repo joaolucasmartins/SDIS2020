@@ -1,11 +1,14 @@
+package sender;
+
 import message.ChunkMsg;
 import message.Message;
 
 import java.util.Random;
 
 public class ChunkSender extends MessageSender<ChunkMsg> {
-    private final static int MAX_TIMEOUT=400;
+    private final static int MAX_TIMEOUT = 400;
     private boolean chunkAlreadySent;
+
     public ChunkSender(SockThread sockThread, ChunkMsg message, MessageHandler handler) {
         super(sockThread, message, handler);
         this.chunkAlreadySent = false;

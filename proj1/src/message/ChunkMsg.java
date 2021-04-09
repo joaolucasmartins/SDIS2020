@@ -3,7 +3,6 @@ package message;
 import file.DigestFile;
 import utils.Pair;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
@@ -60,6 +59,11 @@ public class ChunkMsg extends Message {
     }
 
     @Override
+    public String getSockName() {
+        return "MDR";
+    }
+
+    @Override
     public String getType() {
         return type;
     }
@@ -71,6 +75,6 @@ public class ChunkMsg extends Message {
 
     @Override
     public String toString() {
-        return type + " " + this.fileId + " chunkno. " + this.chunkNo;
+        return type + " " + this.fileId + " chunkno. " + this.chunkNo + " from " + super.id;
     }
 }

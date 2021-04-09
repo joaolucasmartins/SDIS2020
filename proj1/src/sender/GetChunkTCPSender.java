@@ -1,3 +1,5 @@
+package sender;
+
 import message.ChunkMsg;
 import message.GetChunkMsg;
 import message.Message;
@@ -12,9 +14,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class GetChunkTCPSender extends MessageSender<GetChunkMsg> {
     private static final int MAX_RETRANSMIT = 5;
     private static final long COLLECTION_INTERVAL = 1000; // in ms
+    private final AtomicBoolean gotChunk;
     private ChunkMsg notificationMsg;
     private byte[] response;
-    private final AtomicBoolean gotChunk;
 
     public GetChunkTCPSender(SockThread sockThread, GetChunkMsg message, MessageHandler handler) {
         super(sockThread, message, handler);

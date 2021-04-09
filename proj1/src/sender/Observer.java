@@ -1,3 +1,5 @@
+package sender;
+
 import message.Message;
 
 public interface Observer {

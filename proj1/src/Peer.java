@@ -1,5 +1,6 @@
 import file.DigestFile;
 import message.*;
+import sender.*;
 import state.FileInfo;
 import state.State;
 import utils.Pair;
@@ -59,15 +60,15 @@ public class Peer implements TestInterface {
         // MC
         InetAddress MC = InetAddress.getByName(args[3]);
         Integer MCPort = Integer.parseInt(args[4]);
-        this.MCSock = this.createSocketThread(MC, MCPort);
+        this.MCSock = this.createSocketThread("MC", MC, MCPort);
         // MDB
         InetAddress MDB = InetAddress.getByName(args[5]);
         Integer MDBPort = Integer.parseInt(args[6]);
-        this.MDBSock = this.createSocketThread(MDB, MDBPort);
+        this.MDBSock = this.createSocketThread("MDB", MDB, MDBPort);
         // MDR
         InetAddress MDR = InetAddress.getByName(args[7]);
         Integer MDRPort = Integer.parseInt(args[8]);
-        this.MDRSock = this.createSocketThread(MDR, MDRPort);
+        this.MDRSock = this.createSocketThread("MDR", MDR, MDRPort);
 
         if (this.protocolVersion.equals("2.0")) {
             if (State.st.isStorageFull()) this.MDBSock.leave();
@@ -145,9 +146,9 @@ public class Peer implements TestInterface {
         }
     }
 
-    private SockThread createSocketThread(InetAddress addr, Integer port) throws IOException {
+    private SockThread createSocketThread(String name, InetAddress addr, Integer port) throws IOException {
         MulticastSocket socket = new MulticastSocket(port);
-        return new SockThread(socket, addr, port);
+        return new SockThread(name, socket, addr, port);
     }
 
     public void cleanup() {
@@ -310,13 +311,13 @@ public class Peer implements TestInterface {
             byte[] chunk;
             if (this.protocolVersion.equals("2.0")) {
                 GetChunkTCPSender getChunkTCPSender = (GetChunkTCPSender) sender.p2;
-                chunkNumber = getChunkTCPSender.message.getChunkNo();
+                chunkNumber = getChunkTCPSender.getMessage().getChunkNo();
             } else {
                 GetChunkSender getChunkSender = (GetChunkSender) sender.p2;
-                chunkNumber = getChunkSender.message.getChunkNo();
+                chunkNumber = getChunkSender.getMessage().getChunkNo();
             }
 
-            if (!sender.p2.success.get()) {
+            if (!sender.p2.getSuccess()) {
                 State.st.rmTask(task);
                 throw new RemoteException("Failed to restore the file " + filePath +
                         " because of a missing chunk: " + chunkNumber);
