@@ -73,8 +73,6 @@ public class GetChunkTCPSender extends MessageSender<GetChunkMsg> {
             boolean success;
             if (message.getVersion().equals("2.0")) {
                 success = handleTcpVersion(chunkMsg);
-                if (success)
-                    System.err.println("WEEEEEEEEEEEEEEEEE DID IT TCP BOYS");
             } else {
                 success = handleNormalVersion(chunkMsg);
             }

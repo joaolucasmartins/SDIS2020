@@ -3,9 +3,7 @@ package state;
 import file.DigestFile;
 
 import java.io.*;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -13,6 +11,9 @@ import java.util.concurrent.ConcurrentMap;
 public class State implements Serializable {
     public transient static final String REPMAPNAME = "repMap.txt";
     public transient static final State st = State.importMap();
+
+    // stores the running tasks for recovering on program end
+    private final ConcurrentHashMap<String[], Boolean> tasks;
 
     // fileId -> fileInformation
     private final ConcurrentMap<String, FileInfo> replicationMap;
@@ -22,6 +23,7 @@ public class State implements Serializable {
     private final ConcurrentMap<String, HashSet<String>> undeletedFilesByPeer;
 
     private State() {
+        this.tasks = new ConcurrentHashMap<>();
         this.replicationMap = new ConcurrentHashMap<>();
         this.undeletedFilesByPeer = new ConcurrentHashMap<>();
         this.maxDiskSpaceB = -1L;
@@ -29,6 +31,21 @@ public class State implements Serializable {
 
     public static State getState() {
         return st;
+    }
+
+    // RUNNING TASKS
+    public void addTask(String[] task) {
+        this.tasks.put(task, false);
+    }
+
+    public void rmTask(String[] task) {
+        this.tasks.remove(task);
+    }
+
+    public List<String[]> getTasks() {
+        List<String[]> ret = new ArrayList<>(this.tasks.keySet());
+        this.tasks.clear();
+        return ret;
     }
 
     // STORAGE
