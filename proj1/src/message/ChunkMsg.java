@@ -27,7 +27,7 @@ public class ChunkMsg extends Message {
     public ChunkMsg(String version, String id, String fileId, int chunkNo) {
         this(version, id, fileId, chunkNo, new byte[0]);
         try {
-            this.chunk = DigestFile.readChunk(fileId + File.separator + chunkNo);
+            this.chunk = DigestFile.readChunk(fileId, chunkNo);
         } catch (IOException e) {
             e.printStackTrace(); // TODO Fail if chunk isn't here
         }

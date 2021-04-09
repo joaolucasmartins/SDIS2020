@@ -20,7 +20,7 @@ public class ChunkTCPSender extends MessageSender<ChunkMsg> {
         super(sockThread, message, handler);
         this.chunkAlreadySent = new AtomicBoolean(false);
         try {
-            this.chunk = DigestFile.readChunk(message.getFileId() + File.separator + message.getChunkNo());
+            this.chunk = DigestFile.readChunk(message.getFileId(), message.getChunkNo());
         } catch (IOException e) {
             e.printStackTrace();
         }

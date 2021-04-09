@@ -52,7 +52,7 @@ public class MessageHandler {
             if (!State.st.amIStoringChunk(message.getFileId(), message.getChunkNo())) {
                 if (State.st.updateStorageSize(message.getChunk().length)) {
                     try {
-                        DigestFile.writeChunk(message.getFileId() + File.separator + message.getChunkNo(),
+                        DigestFile.writeChunk(message.getFileId(), message.getChunkNo(),
                                 message.getChunk(), message.getChunk().length);
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -157,7 +157,7 @@ public class MessageHandler {
                 chunk = DigestFile.divideFileChunk(State.st.getFileInfo(message.getFileId()).getFilePath(),
                         message.getChunkNo());
             } else {
-                chunk = DigestFile.readChunk(message.getFileId() + File.separator + message.getChunkNo());
+                chunk = DigestFile.readChunk(message.getFileId(), message.getChunkNo());
             }
 
             PutChunkMsg putChunkMsg = new PutChunkMsg(this.protocolVersion, this.selfID,
