@@ -224,6 +224,17 @@ public class Peer implements TestInterface {
         List<byte[]> chunks;
         try {
             fileId = DigestFile.getHash(filePath);
+
+            // Check if file with same path and with different hash was already stored for backup
+            String oldFileId = State.st.getHashByFileName(filePath);
+            if (oldFileId != null) {
+                if (!oldFileId.equals(fileId)) { // Files were different, delete old file
+                    String errorMsg = this.deleteFromId(oldFileId);
+                    if (!errorMsg.equals("Success"))
+                        return "Failed to delete old version of file: " + errorMsg;
+                }
+            }
+
             if (this.protocolVersion.equals("2.0")) {
                 State.st.notToDeleteAnymore(fileId);
             }
