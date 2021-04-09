@@ -31,72 +31,54 @@ public class TestApp {
         }
         assert stub != null;
 
+        String reply = null;
         String oper = args[1];
-        switch (oper.toUpperCase()) {
-            case "BACKUP":
-                if (args.length != 4) usage();
-                String filePath = args[2];
-                int replicationDegree = Integer.parseInt(args[3]);
-                System.out.println("BACKUP " + filePath + " " + replicationDegree);
+        try {
+            switch (oper.toUpperCase()) {
+                case "BACKUP":
+                    if (args.length != 4) usage();
+                    String filePath = args[2];
+                    int replicationDegree = Integer.parseInt(args[3]);
+                    System.out.println("BACKUP " + filePath + " " + replicationDegree);
 
-                try {
-                    String reply = stub.backup(filePath, replicationDegree);
-                    System.out.println(reply);
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
-                break;
-            case "RESTORE":
-                if (args.length != 3) usage();
-                filePath = args[2];
-                System.out.println("RESTORE " + filePath);
+                    reply = stub.backup(filePath, replicationDegree);
+                    break;
+                case "RESTORE":
+                    if (args.length != 3) usage();
+                    filePath = args[2];
+                    System.out.println("RESTORE " + filePath);
 
-                try {
-                    String reply = stub.restore(filePath);
-                    System.out.println(reply);
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
-                break;
-            case "DELETE":
-                if (args.length != 3) usage();
-                filePath = args[2];
-                System.out.println("DELETE " + filePath);
+                    reply = stub.restore(filePath);
+                    break;
+                case "DELETE":
+                    if (args.length != 3) usage();
+                    filePath = args[2];
+                    System.out.println("DELETE " + filePath);
 
-                try {
-                    String reply = stub.delete(filePath);
-                    System.out.println(reply);
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
-                break;
-            case "RECLAIM":
-                if (args.length != 3) usage();
-                int maxCapacity = Integer.parseInt(args[2]);
-                System.out.println("RECLAIM " + maxCapacity);
+                    reply = stub.delete(filePath);
+                    break;
+                case "RECLAIM":
+                    if (args.length != 3) usage();
+                    int maxCapacity = Integer.parseInt(args[2]);
+                    System.out.println("RECLAIM " + maxCapacity);
 
-                try {
-                    String reply = stub.reclaim(maxCapacity);
-                    System.out.println(reply);
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
-                break;
-            case "STATE":
-                if (args.length != 2) usage();
-                System.out.println("STATE");
+                    reply = stub.reclaim(maxCapacity);
+                    break;
+                case "STATE":
+                    if (args.length != 2) usage();
+                    System.out.println("STATE");
 
-                try {
-                    String reply = stub.state();
-                    System.out.println(reply);
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
-                break;
-            default:
-                System.err.println("Unknown operation: " + oper);
-                usage();
-                break;
+                    reply = stub.state();
+                    break;
+                default:
+                    System.err.println("Unknown operation: " + oper);
+                    usage();
+                    break;
+            }
+            assert reply != null;
+            System.out.println(reply);
+        } catch (RemoteException e) {
+            System.err.println("Failed: " + e.getMessage());
         }
     }
 }
