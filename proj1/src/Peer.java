@@ -15,6 +15,7 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -77,6 +78,43 @@ public class Peer implements TestInterface {
 
         System.out.println(this);
         System.out.println("Initialized program.");
+    }
+
+    private void verifyModifiedFiles() {
+        String errorMsg = "";
+        Map<String, FileInfo> fileMap = State.st.getAllFilesInfo();
+        for (String oldFileId: fileMap.keySet()) {
+            FileInfo fileInfo = fileMap.get(oldFileId);
+            if (fileInfo.isInitiator()) {
+                String filePath = fileInfo.getFilePath();
+                String newFileId;
+                try {
+                    newFileId = DigestFile.getHash(filePath);
+                } catch (IOException e) {
+                    newFileId = ""; // File not present, delete it
+                }
+                if (newFileId.equals("")) { // File not present, delete it
+                    errorMsg = this.deleteFromId(oldFileId);
+                    if (!errorMsg.equals("Success")) {
+                        System.err.println(errorMsg + "(Peer Init)");
+                        return;
+                    }
+                } else {
+                    if (!newFileId.equals(oldFileId)) { // If the file changed when we were Zzz
+                        try {
+                            errorMsg = this.deleteFromId(oldFileId.strip());
+                            if (!errorMsg.equals("Success")) {
+                                System.err.println(errorMsg + "(Peer Init)");
+                                return;
+                            }
+                            this.backup(filePath, fileInfo.getDesiredRep());
+                        } catch (RemoteException e) {
+                            System.err.println("Fail when deleting file (Peer Init)" + filePath);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private SockThread createSocketThread(InetAddress addr, Integer port) throws IOException {
@@ -183,6 +221,9 @@ public class Peer implements TestInterface {
             System.err.println("Exiting gracefully..");
             finalProg.cleanup();
         }));
+
+        // In this function we are verifying the modified files :). Hope your day is going as intended. Bye <3
+        prog.verifyModifiedFiles();
 
         // TODO add to extras section
         // setup the access point
@@ -293,17 +334,13 @@ public class Peer implements TestInterface {
         }
     }
 
-    @Override
-    public String delete(String filePath) throws RemoteException {
-        try {
-            String fileId = DigestFile.getHash(filePath);
-
+    public String deleteFromId(String fileId) {
             if (this.protocolVersion.equals("2.0")) {
                 synchronized (State.st) {
                     // has initiated file
                     FileInfo fileInfo = State.st.getFileInfo(fileId);
                     if (fileInfo == null)
-                        return "No information stored about file " + filePath + " with hash " + fileId;
+                        return "No information stored about the file with hash " + fileId;
                     // update the files to delete structure with everyone we know has this file
                     for (var peer : fileInfo.getPeersStoringFile())
                         State.st.addUndeletedPair(peer, fileId);
@@ -315,10 +352,18 @@ public class Peer implements TestInterface {
             DeleteMsg msg = new DeleteMsg(this.protocolVersion, this.id, fileId);
             this.MCSock.send(msg);
 
-            return "Deleted file " + filePath + " with hash " + fileId + ".";
+            return "Success";
+    }
+
+    @Override
+    public String delete(String filePath) throws RemoteException {
+        String fileId;
+        try {
+            fileId = DigestFile.getHash(filePath);
         } catch (IOException e) {
             throw new RemoteException("Deletion of " + filePath + " failed.");
         }
+        return "File " + filePath + " deletion: " + this.deleteFromId(fileId);
     }
 
     // force == true => ignore if the the replication degree becomes 0
