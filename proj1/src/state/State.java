@@ -1,6 +1,7 @@
 package state;
 
 import file.DigestFile;
+import utils.Pair;
 
 import java.io.*;
 import java.util.*;
@@ -101,6 +102,17 @@ public class State implements Serializable {
     public boolean isInitiator(String fileId) {
         if (!this.replicationMap.containsKey(fileId)) return false;
         return this.replicationMap.get(fileId).isInitiator();
+    }
+
+    public String getHashByFileName(String filename) {
+        for (String fileId : this.replicationMap.keySet()) {
+            FileInfo fileInfo = this.replicationMap.get(fileId);
+            if (fileInfo.isInitiator()) {
+                if (fileInfo.getFilePath().equals(filename))
+                    return fileId;
+            }
+        }
+        return null;
     }
 
     // ADD
