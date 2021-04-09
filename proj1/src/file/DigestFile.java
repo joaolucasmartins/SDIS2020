@@ -174,7 +174,7 @@ public class DigestFile {
         long fileSize = new File(filePath).length();
         FileInputStream inputStream = new FileInputStream(filePath);
 
-        State.st.addFileEntry(fileId, FILE_DIR + filename, replicationDegree);
+        State.st.addFileEntry(fileId, filename, replicationDegree); // >:( // >:(
 
         List<byte[]> ret = new ArrayList<>();
         int i = 0;
