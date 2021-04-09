@@ -1,6 +1,5 @@
 import file.DigestFile;
 import message.ChunkMsg;
-import message.ChunkTCPMsg;
 import message.Message;
 
 import java.io.DataOutputStream;
@@ -11,13 +10,13 @@ import java.net.Socket;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class ChunkTCPSender extends MessageSender<ChunkTCPMsg> {
+public class ChunkTCPSender extends MessageSender<ChunkMsg> {
     private final static int MAX_DELAY_TIMEOUT = 400;
     private final static int MAX_TIMEOUT_TCP = 10000;
     private final AtomicBoolean chunkAlreadySent;
     private byte[] chunk;
 
-    public ChunkTCPSender(SockThread sockThread, ChunkTCPMsg message, MessageHandler handler) {
+    public ChunkTCPSender(SockThread sockThread, ChunkMsg message, MessageHandler handler) {
         super(sockThread, message, handler);
         this.chunkAlreadySent = new AtomicBoolean(false);
         try {
@@ -28,15 +27,9 @@ public class ChunkTCPSender extends MessageSender<ChunkTCPMsg> {
     }
 
     private boolean refersToSameChunk(Message message) {
-        if (message.getType().equals(ChunkTCPMsg.type) &&
+        if (message.getType().equals(ChunkMsg.type) &&
                 message.getFileId().equals(this.message.getFileId())) {
-            if (message.getVersion().equals("2.0")) {
-                ChunkTCPMsg chunkMsg = (ChunkTCPMsg) message;
-                return chunkMsg.getChunkNo() == this.message.getChunkNo();
-            } else {
-                ChunkMsg chunkMsg = (ChunkMsg) message;
-                return chunkMsg.getChunkNo() == this.message.getChunkNo();
-            }
+            return ((ChunkMsg) message).getChunkNo() == this.message.getChunkNo();
         }
         return false;
     }
@@ -80,8 +73,9 @@ public class ChunkTCPSender extends MessageSender<ChunkTCPMsg> {
                             return;
                         }
                         // Send ChunkTCP Message with the respective ip and port
-                        Integer port = serverSocket.getLocalPort();
-                        ChunkTCPSender.super.message.setTCPAddress(serverSocket.getInetAddress().getHostAddress(), port);
+                        String ip = serverSocket.getInetAddress().getHostAddress();
+                        int port = serverSocket.getLocalPort();
+                        ChunkTCPSender.super.message.setTCPAddr(ip, port);
                         ChunkTCPSender.super.send();
                         // Wait for someone to connect
                         try {

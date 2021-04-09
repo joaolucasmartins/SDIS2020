@@ -1,6 +1,7 @@
 package message;
 
 import file.DigestFile;
+import utils.Pair;
 
 import java.io.File;
 import java.io.IOException;
@@ -30,6 +31,15 @@ public class ChunkMsg extends Message {
         } catch (IOException e) {
             e.printStackTrace(); // TODO Fail if chunk isn't here
         }
+    }
+
+    public void setTCPAddr(String ip, int port) {
+        this.chunk = (ip + " " + port).getBytes();
+    }
+
+    public Pair<String, Integer> getTCP() {
+        String[] tcpInfo = new String(this.chunk).split(" ");
+        return new Pair<>(tcpInfo[0], Integer.parseInt(tcpInfo[1]));
     }
 
     public byte[] getChunk() {

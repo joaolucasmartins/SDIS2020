@@ -125,16 +125,13 @@ public class MessageHandler {
                 return;
         }
 
-        Message response;
+        ChunkMsg response = new ChunkMsg(this.protocolVersion, this.selfID,
+                message.getFileId(), message.getChunkNo());
         MessageSender<? extends Message> chunkSender;
         if (this.protocolVersion.equals("2.0") && message.getVersion().equals("2.0")) {
-            response = new ChunkTCPMsg(this.protocolVersion, this.selfID,
-                    message.getFileId(), message.getChunkNo());
-            chunkSender = new ChunkTCPSender(this.MDRSock, (ChunkTCPMsg) response, this);
+            chunkSender = new ChunkTCPSender(this.MDRSock, response, this);
         } else {
-            response = new ChunkMsg(this.protocolVersion, this.selfID,
-                    message.getFileId(), message.getChunkNo());
-            chunkSender = new ChunkSender(this.MDRSock, (ChunkMsg) response, this);
+            chunkSender = new ChunkSender(this.MDRSock, response, this);
         }
         chunkSender.run();
     }

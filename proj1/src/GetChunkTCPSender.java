@@ -1,7 +1,7 @@
 import message.ChunkMsg;
-import message.ChunkTCPMsg;
 import message.GetChunkMsg;
 import message.Message;
+import utils.Pair;
 
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class GetChunkTCPSender extends MessageSender<GetChunkMsg> {
     private static final int MAX_RETRANSMIT = 5;
     private static final long COLLECTION_INTERVAL = 1000; // in ms
-    private Message notificationMsg;
+    private ChunkMsg notificationMsg;
     private byte[] response;
     private final AtomicBoolean gotChunk;
 
@@ -26,25 +26,18 @@ public class GetChunkTCPSender extends MessageSender<GetChunkMsg> {
     }
 
     private boolean refersToSameChunk(Message message) {
-        if (message.getType().equals(ChunkTCPMsg.type) &&
+        if (message.getType().equals(ChunkMsg.type) &&
                 message.getFileId().equals(this.message.getFileId())) {
-            if (message.getVersion().equals("2.0")) {
-                ChunkTCPMsg chunkMsg = (ChunkTCPMsg) message;
-                return chunkMsg.getChunkNo() == this.message.getChunkNo();
-            } else {
-                ChunkMsg chunkMsg = (ChunkMsg) message;
-                return chunkMsg.getChunkNo() == this.message.getChunkNo();
-            }
+            return ((ChunkMsg) message).getChunkNo() == this.message.getChunkNo();
         }
         return false;
     }
 
-    private boolean handleTcpVersion(Message message) {
-        ChunkTCPMsg chunkTCPMsg = (ChunkTCPMsg) message;
-
+    private boolean handleTcpVersion(ChunkMsg chunkMsg) {
         Socket socket;
         try {
-            socket = new Socket(InetAddress.getByName(chunkTCPMsg.getIp()), chunkTCPMsg.getTcpPort());
+            Pair<String, Integer> tcpInfo = chunkMsg.getTCP();
+            socket = new Socket(InetAddress.getByName(tcpInfo.p1), tcpInfo.p2);
         } catch (IOException e) {
             System.err.println("Failed to open TCP socket (GetChunkTCP)");
             return false;
@@ -68,24 +61,26 @@ public class GetChunkTCPSender extends MessageSender<GetChunkMsg> {
         return isGood;
     }
 
-    private boolean handleNormalVersion(Message message) {
-        this.response = ((ChunkMsg) message).getChunk();
+    private boolean handleNormalVersion(ChunkMsg chunkMsg) {
+        this.response = chunkMsg.getChunk();
         return true;
     }
 
     @Override
     public void notify(Message message) {
         if (refersToSameChunk(message)) {
+            ChunkMsg chunkMsg = (ChunkMsg) message;
             boolean success;
             if (message.getVersion().equals("2.0")) {
-                success = handleTcpVersion(message);
-            }
-            else {
-                success = handleNormalVersion(message);
+                success = handleTcpVersion(chunkMsg);
+                if (success)
+                    System.err.println("WEEEEEEEEEEEEEEEEE DID IT TCP BOYS");
+            } else {
+                success = handleNormalVersion(chunkMsg);
             }
 
             if (success) {
-                this.notificationMsg = message;
+                this.notificationMsg = chunkMsg;
                 this.gotChunk.set(true);
                 this.xau();
             }
