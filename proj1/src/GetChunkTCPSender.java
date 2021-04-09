@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class GetChunkTCPSender extends MessageSender<GetChunkMsg> {
     private static final int MAX_RETRANSMIT = 5;
     private static final long COLLECTION_INTERVAL = 1000; // in ms
-    private Message chunkTCPMsg;
+    private Message notificationMsg;
     private byte[] response;
     private final AtomicBoolean gotChunk;
 
@@ -26,22 +26,21 @@ public class GetChunkTCPSender extends MessageSender<GetChunkMsg> {
     }
 
     private boolean refersToSameChunk(Message message) {
-        if (message.getType().equals(ChunkTCPMsg.type)) {
+        if (message.getType().equals(ChunkTCPMsg.type) &&
+                message.getFileId().equals(this.message.getFileId())) {
             if (message.getVersion().equals("2.0")) {
                 ChunkTCPMsg chunkMsg = (ChunkTCPMsg) message;
-                return chunkMsg.getChunkNo() == this.message.getChunkNo() &&
-                        chunkMsg.getFileId().equals(this.message.getFileId());
+                return chunkMsg.getChunkNo() == this.message.getChunkNo();
             } else {
                 ChunkMsg chunkMsg = (ChunkMsg) message;
-                return chunkMsg.getChunkNo() == this.message.getChunkNo() &&
-                        chunkMsg.getFileId().equals(this.message.getFileId());
+                return chunkMsg.getChunkNo() == this.message.getChunkNo();
             }
         }
         return false;
     }
 
-    private boolean handleTcpVersion() {
-        ChunkTCPMsg chunkTCPMsg = (ChunkTCPMsg) this.chunkTCPMsg;
+    private boolean handleTcpVersion(Message message) {
+        ChunkTCPMsg chunkTCPMsg = (ChunkTCPMsg) message;
 
         Socket socket;
         try {
@@ -69,20 +68,24 @@ public class GetChunkTCPSender extends MessageSender<GetChunkMsg> {
         return isGood;
     }
 
-    private boolean handleNormalVersion() {
-        this.response = ((ChunkMsg) this.chunkTCPMsg).getChunk();
+    private boolean handleNormalVersion(Message message) {
+        this.response = ((ChunkMsg) message).getChunk();
         return true;
     }
 
     @Override
-    public void notify(Message message) { // TODO timeout
+    public void notify(Message message) {
         if (refersToSameChunk(message)) {
-            this.chunkTCPMsg = message;
-            boolean success = this.chunkTCPMsg.getVersion().equals("2.0") ?
-                    handleTcpVersion() :
-                    handleNormalVersion();
+            boolean success;
+            if (message.getVersion().equals("2.0")) {
+                success = handleTcpVersion(message);
+            }
+            else {
+                success = handleNormalVersion(message);
+            }
 
             if (success) {
+                this.notificationMsg = message;
                 this.gotChunk.set(true);
                 this.xau();
             }

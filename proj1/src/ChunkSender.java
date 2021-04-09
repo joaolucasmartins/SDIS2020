@@ -20,10 +20,10 @@ public class ChunkSender extends MessageSender<ChunkMsg> {
     }
 
     private boolean refersToSameChunk(Message message) {
-        if (message.getType().equals(ChunkMsg.type)) {
+        if (message.getType().equals(ChunkMsg.type) &&
+                message.getFileId().equals(this.message.getFileId())) {
             ChunkMsg chunkMsg = (ChunkMsg) message;
-            return chunkMsg.getChunkNo() == this.message.getChunkNo() &&
-                    chunkMsg.getFileId().equals(this.message.getFileId());
+            return chunkMsg.getChunkNo() == this.message.getChunkNo();
         }
         return false;
     }

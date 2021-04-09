@@ -1,4 +1,5 @@
 import file.DigestFile;
+import message.ChunkMsg;
 import message.ChunkTCPMsg;
 import message.Message;
 
@@ -11,8 +12,8 @@ import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ChunkTCPSender extends MessageSender<ChunkTCPMsg> {
-    private final static int MAX_DELAY_TIMEOUT =400;
-    private final static int MAX_TIMEOUT_TCP=10000;
+    private final static int MAX_DELAY_TIMEOUT = 400;
+    private final static int MAX_TIMEOUT_TCP = 10000;
     private final AtomicBoolean chunkAlreadySent;
     private byte[] chunk;
 
@@ -26,21 +27,26 @@ public class ChunkTCPSender extends MessageSender<ChunkTCPMsg> {
         }
     }
 
+    private boolean refersToSameChunk(Message message) {
+        if (message.getType().equals(ChunkTCPMsg.type) &&
+                message.getFileId().equals(this.message.getFileId())) {
+            if (message.getVersion().equals("2.0")) {
+                ChunkTCPMsg chunkMsg = (ChunkTCPMsg) message;
+                return chunkMsg.getChunkNo() == this.message.getChunkNo();
+            } else {
+                ChunkMsg chunkMsg = (ChunkMsg) message;
+                return chunkMsg.getChunkNo() == this.message.getChunkNo();
+            }
+        }
+        return false;
+    }
+
     @Override
     public void notify(Message message) {
         if (refersToSameChunk(message)) {
             this.chunkAlreadySent.set(true);
             this.xau();
         }
-    }
-
-    private boolean refersToSameChunk(Message message) {
-        if (message.getType().equals(ChunkTCPMsg.type)) {
-            ChunkTCPMsg chunkMsg = (ChunkTCPMsg) message;
-            return chunkMsg.getChunkNo() == this.message.getChunkNo() &&
-                    chunkMsg.getFileId().equals(this.message.getFileId());
-        }
-        return false;
     }
 
     @Override

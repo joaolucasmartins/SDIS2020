@@ -35,7 +35,8 @@ public class MessageCreator {
                         parseInt(header[Message.chunkField]));
                 break;
             case (ChunkMsg.type):
-                if (header[Message.versionField].equals("2.0")) {
+                if (this.protocolVersion.equals("2.0") &&
+                        header[Message.versionField].equals("2.0")) {
                     res = new ChunkTCPMsg(header[Message.versionField], header[Message.idField],
                             header[Message.fileField],
                             parseInt(header[Message.chunkField]),
