@@ -86,7 +86,7 @@ public class SockThread implements Runnable {
             try {
                 this.sock.receive(packet);
             } catch (SocketException e) {
-                // happens is the blocking call is interrupted
+                // happens if the blocking call is interrupted
                 break;
             } catch (IOException e) {
                 e.printStackTrace();

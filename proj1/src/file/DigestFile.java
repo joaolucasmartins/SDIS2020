@@ -91,17 +91,18 @@ public class DigestFile {
      *  returns true when the entry was present in the map
      */
     public static boolean deleteFile(String fileId) {
-        File fileDir = new File(FILE_DIR + fileId);
-        if (fileDir.listFiles() == null) return false;
-
         if (State.st.getFileInfo(fileId) == null) return false;
         State.st.removeFileEntry(fileId);
 
-        // to delete a directory, the directory must be empty
-        for (File f : Objects.requireNonNull(fileDir.listFiles())) {
-            State.st.updateStorageSize(-f.length());
-            f.delete();
+        File fileDir = new File(FILE_DIR + fileId);
+        if (fileDir.listFiles() != null) {
+            // to delete a directory, the directory must be empty
+            for (File f : Objects.requireNonNull(fileDir.listFiles())) {
+                State.st.updateStorageSize(-f.length());
+                f.delete();
+            }
         }
+
         fileDir.delete();
         return true;
     }
@@ -176,7 +177,7 @@ public class DigestFile {
     public static List<byte[]> divideFile(String filename, int replicationDegree) throws IOException {
         Path filePath = Paths.get(PEER_DIR + filename);
         if (surpassesMaxChunks(filePath))
-            throw new MasNaoTeVouAlocar();
+            throw new IOException("File is too big (mas não te vou alocar).");
 
         String fileId = getHash(filename);
         long fileSize = filePath.toFile().length();
@@ -214,7 +215,7 @@ public class DigestFile {
     public static byte[] divideFileChunk(String filename, int chunkNo) throws IOException {
         Path filePath = Paths.get(PEER_DIR + filename);
         if (surpassesMaxChunks(filePath))
-            throw new MasNaoTeVouAlocar();
+            throw new IOException("File is too big (mas não te vou alocar).");
 
         FileInputStream inputStream = new FileInputStream(filePath.toFile());
 

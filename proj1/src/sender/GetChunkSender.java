@@ -51,7 +51,7 @@ public class GetChunkSender extends MessageSender<GetChunkMsg> {
                 return;
             }
 
-            if (gotChunk.get()) {
+            if (this.gotChunk.get()) {
                 this.success.set(true);
                 return;
             }

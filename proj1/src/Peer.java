@@ -227,6 +227,7 @@ public class Peer implements TestInterface {
             fileId = DigestFile.getHash(filePath);
 
             // Check if file with same path and with different hash was already stored for backup
+            // doesn't need synchronized because it only uses concurrent objs
             String oldFileId = State.st.getHashByFileName(filePath);
             if (oldFileId != null) {
                 if (!oldFileId.equals(fileId)) { // Files were different, delete old file
