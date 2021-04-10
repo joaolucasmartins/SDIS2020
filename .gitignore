@@ -2,6 +2,7 @@
 proj1/out
 proj1/build
 proj1/peer-*
+src/build
 
 # https://github.com/github/gitignore/blob/master/Java.gitignore
 # Compiled class file
