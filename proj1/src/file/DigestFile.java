@@ -166,6 +166,8 @@ public class DigestFile {
         FileInputStream inputFile = new FileInputStream(FILE_DIR + chunkpath);
         byte[] b = new byte[MAX_CHUNK_SIZE];
         int len = inputFile.read(b, 0, MAX_CHUNK_SIZE);
+        if (len <= 0)
+            return new byte[0];
         return Arrays.copyOfRange(b, 0, len);
     }
 

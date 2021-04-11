@@ -68,6 +68,7 @@ public class MessageHandler {
                     // unsub MDB when storage is full
                     if (this.protocolVersion.equals("2.0")) {
                         if (State.st.isStorageFull()) this.MDBSock.leave();
+                        else this.MDBSock.join();
                     }
                 }
             } else {
@@ -99,7 +100,8 @@ public class MessageHandler {
 
             if (this.protocolVersion.equals("2.0")) {
                 // unsub MDB when storage is not full
-                if (!State.st.isStorageFull()) this.MDBSock.join();
+                if (State.st.isStorageFull()) this.MDBSock.leave();
+                else this.MDBSock.join();
             }
         }
 

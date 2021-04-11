@@ -281,6 +281,8 @@ public class Peer implements TestInterface {
             throw new RemoteException("File " + filePath + " is too big");
         }
 
+        // Storing the futures to be able to restore the file after getting all the chunks (or failling
+        // if a chunk is missing)
         List<Pair<Future<?>, MessageSender<? extends Message>>> senders = new ArrayList<>();
         for (int currChunk = 0; currChunk < chunkNo; ++currChunk) {
             // this is redundant because we have to be the initiator peer to restore a file
