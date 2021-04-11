@@ -14,20 +14,20 @@ public class ChunkSender extends MessageSender<ChunkMsg> {
         this.chunkAlreadySent = false;
     }
 
-    @Override
-    public void notify(Message message) {
-        if (refersToSameChunk(message)) {
-            chunkAlreadySent = true;
-            this.xau();
-        }
-    }
-
     private boolean refersToSameChunk(Message message) {
         if (message.getType().equals(ChunkMsg.type) &&
                 message.getFileId().equals(this.message.getFileId())) {
             return ((ChunkMsg) message).getChunkNo() == this.message.getChunkNo();
         }
         return false;
+    }
+
+    @Override
+    public void notify(Message message) {
+        if (refersToSameChunk(message)) {
+            chunkAlreadySent = true;
+            this.xau();
+        }
     }
 
     @Override

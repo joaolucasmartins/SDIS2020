@@ -227,7 +227,7 @@ public class DigestFile {
         if (chunkSize > MAX_CHUNK_SIZE)
             chunkSize = MAX_CHUNK_SIZE;
 
-        if (chunkSize == 0)
+        if (chunkSize <= 0)
             return new byte[0];
 
         inputStream.skip(toSkip);

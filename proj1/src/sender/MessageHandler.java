@@ -211,7 +211,7 @@ public class MessageHandler {
             System.err.println("Skipping message that came from the wrong socket.");
         }
 
-        System.out.println("Received: " + message);
+        System.out.println("\tReceived: " + message);
         // notify observers
         for (Observer obs : this.observers.keySet()) {
             obs.notify(message);

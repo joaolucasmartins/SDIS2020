@@ -122,8 +122,8 @@ public class State implements Serializable {
     }
 
     public boolean isChunkOk(String fileId, int chunkNo) {
-        int desiredRepDeg = State.st.getFileDeg(fileId);
-        int chunkDeg = State.st.getChunkDeg(fileId, chunkNo);
+        int desiredRepDeg = this.getFileDeg(fileId);
+        int chunkDeg = this.getChunkDeg(fileId, chunkNo);
 
         return chunkDeg >= desiredRepDeg;
     }
